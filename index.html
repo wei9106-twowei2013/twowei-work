@@ -567,10 +567,8 @@
 <div class="toast" id="toast">✓ <span id="toastMsg"></span></div>
 
 <script>
-  // ── DATA (shared online storage via kvdb.io — free, no login required) ──
-  const KVDB_BUCKET = '4Y6F3EwsHVZnQFR1NmvWhz';
-  const STORAGE_KEY = 'progresstrack-tasks';
-  const KVDB_URL = `https://kvdb.io/${KVDB_BUCKET}/${STORAGE_KEY}`;
+  // ── DATA (shared online storage via Cloudflare Worker — free, no login required) ──
+  const KVDB_URL = 'https://twowei-work.wei9106.workers.dev';
   let tasks = [];
   let editId = null;
   let currentFilter = 'all';
