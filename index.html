@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>工作進度回報系統</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --navy:   #0F172A;
+    --navy2:  #1E293B;
+    --navy3:  #334155;
+    --cyan:   #06B6D4;
+    --cyan2:  #0891B2;
+    --snow:   #F8FAFC;
+    --muted:  #94A3B8;
+    --green:  #10B981;
+    --amber:  #F59E0B;
+    --red:    #EF4444;
+    --purple: #8B5CF6;
+    --card:   #ffffff;
+    --border: #E2E8F0;
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--snow);
+    color: var(--navy);
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--navy);
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 60px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 1px solid var(--navy3);
+  }
+  .logo {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .logo span { color: var(--cyan); }
+  .header-right { display: flex; align-items: center; gap: 1rem; }
+  .today-label {
+    font-size: 0.78rem;
+    color: var(--muted);
+  }
+  .sync-status {
+    font-size: 0.75rem;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: opacity 0.3s;
+  }
+  .sync-status.synced { color: var(--green); }
+  .sync-status.error { color: var(--amber); }
+  .retry-btn {
+    background: transparent;
+    border: 1px solid var(--navy3);
+    color: var(--snow);
+    font-size: 0.72rem;
+    padding: 3px 10px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .retry-btn:hover { background: var(--navy3); }
+  .btn-new {
+    background: var(--cyan);
+    color: white;
+    border: none;
+    padding: 7px 16px;
+    border-radius: 8px;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.83rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.15s;
+  }
+  .btn-new:hover { background: var(--cyan2); }
+
+  /* ── LAYOUT ── */
+  .main-wrap {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+  }
+
+  /* ── STATS ROW ── */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  .stat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.2rem 1.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .stat-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+  .stat-value {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .stat-value.green  { color: var(--green); }
+  .stat-value.cyan   { color: var(--cyan); }
+  .stat-value.amber  { color: var(--amber); }
+  .stat-value.red    { color: var(--red); }
+  .stat-sub { font-size: 0.75rem; color: var(--muted); }
+
+  /* ── TOOLBAR ── */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.2rem;
+    flex-wrap: wrap;
+  }
+  .toolbar-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 600;
+    flex: 1;
+  }
+  .filter-group { display: flex; gap: 6px; }
+  .filter-btn {
+    border: 1px solid var(--border);
+    background: white;
+    color: var(--navy3);
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .filter-btn.active, .filter-btn:hover {
+    background: var(--navy);
+    color: white;
+    border-color: var(--navy);
+  }
+
+  /* SEARCH / FILTER ROW */
+  .search-row {
+    display: flex;
+    gap: 0.7rem;
+    margin-bottom: 1.2rem;
+    flex-wrap: wrap;
+  }
+  .search-input { flex: 1; min-width: 200px; }
+  .filter-select {
+    width: auto;
+    min-width: 130px;
+    cursor: pointer;
+  }
+
+  /* ── TASK TABLE ── */
+  .task-table {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .task-table table { width: 100%; border-collapse: collapse; }
+  .task-table thead tr {
+    background: var(--navy);
+    color: white;
+  }
+  .task-table th {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    padding: 12px 16px;
+    text-align: left;
+    white-space: nowrap;
+  }
+  .task-table tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.12s;
+  }
+  .task-table tbody tr:last-child { border-bottom: none; }
+  .task-table tbody tr:hover { background: #F1F5F9; }
+  .task-table td { padding: 13px 16px; vertical-align: middle; }
+
+  .task-name { font-weight: 600; font-size: 0.9rem; margin-bottom: 2px; }
+  .task-project { font-size: 0.75rem; color: var(--muted); }
+  .col-client, .col-period { white-space: nowrap; }
+
+  /* STATUS BADGE */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.73rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+  .badge.done    { background: #D1FAE5; color: #065F46; }
+  .badge.done::before { background: var(--green); }
+  .badge.inprog  { background: #CFFAFE; color: #0E7490; }
+  .badge.inprog::before { background: var(--cyan); }
+  .badge.pending { background: #FEF3C7; color: #92400E; }
+  .badge.pending::before { background: var(--amber); }
+  .badge.blocked { background: #FEE2E2; color: #991B1B; }
+  .badge.blocked::before { background: var(--red); }
+
+  /* PROGRESS BAR */
+  .progress-wrap { width: 120px; }
+  .progress-bar-bg {
+    background: var(--border);
+    border-radius: 4px;
+    height: 6px;
+    overflow: hidden;
+    margin-bottom: 4px;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+  }
+  .fill-green  { background: var(--green); }
+  .fill-cyan   { background: var(--cyan); }
+  .fill-amber  { background: var(--amber); }
+  .fill-red    { background: var(--red); }
+  .progress-pct { font-size: 0.75rem; font-weight: 600; color: var(--navy3); }
+
+  /* ASSIGNEE */
+  .avatar {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: white;
+    margin-right: -6px;
+    border: 2px solid white;
+  }
+
+  /* DUE DATE */
+  .due-date { font-size: 0.8rem; color: var(--navy3); white-space: nowrap; }
+  .due-date.overdue { color: var(--red); font-weight: 600; }
+
+  /* ROW ACTIONS */
+  .row-actions { display: flex; gap: 6px; opacity: 0.45; transition: opacity 0.15s; }
+  tr:hover .row-actions, .row-actions:focus-within { opacity: 1; }
+  .icon-btn {
+    width: 28px; height: 28px;
+    border: 1px solid var(--border);
+    background: white;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.8rem;
+    transition: background 0.1s;
+  }
+  .icon-btn:hover { background: var(--navy); color: white; border-color: var(--navy); }
+  .icon-btn.danger:hover { background: var(--red); border-color: var(--red); }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(15,23,42,0.5);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 200;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    width: 480px;
+    max-width: 95vw;
+    max-height: 90vh;
+    overflow-y: auto;
+    transform: translateY(16px);
+    transition: transform 0.2s;
+  }
+  .modal-overlay.open .modal { transform: translateY(0); }
+  .modal-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+  }
+  .form-group { margin-bottom: 1.1rem; }
+  .form-label { font-size: 0.8rem; font-weight: 600; color: var(--navy3); margin-bottom: 5px; display: block; }
+  .form-input, .form-select, .form-textarea {
+    width: 100%;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 12px;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.88rem;
+    color: var(--navy);
+    outline: none;
+    transition: border 0.15s;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus {
+    border-color: var(--cyan);
+  }
+  .form-textarea { resize: vertical; min-height: 80px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .range-wrap { display: flex; align-items: center; gap: 10px; }
+  .range-wrap input[type=range] { flex: 1; accent-color: var(--cyan); }
+  .range-pct { font-weight: 700; font-size: 0.9rem; min-width: 36px; text-align: right; }
+  .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 1.5rem; }
+  .btn-cancel {
+    padding: 8px 18px;
+    border: 1.5px solid var(--border);
+    background: white;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .btn-save {
+    padding: 8px 20px;
+    background: var(--cyan);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-save:hover { background: var(--cyan2); }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: 2rem; right: 2rem;
+    background: var(--navy);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    z-index: 300;
+    transform: translateY(10px);
+    opacity: 0;
+    transition: all 0.25s;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  /* ── EMPTY ── */
+  .empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: var(--muted);
+  }
+  .empty-state .icon { font-size: 2.5rem; margin-bottom: 1rem; }
+  .empty-state p { font-size: 0.9rem; }
+
+  @media (max-width: 768px) {
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .col-project, .col-assignee, .col-client, .col-period { display: none; }
+    .progress-wrap { width: 80px; }
+    .search-row { flex-direction: column; }
+    .filter-select { width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">⬡ <span>Progress</span>Track</div>
+  <div class="header-right">
+    <span class="sync-status" id="syncStatus">🔄 同步中…</span>
+    <button class="retry-btn" id="retryBtn" onclick="manualRetry()" style="display:none;">重新整理</button>
+    <span class="today-label" id="todayLabel"></span>
+    <button class="btn-new" onclick="openModal()">＋ 新增工作</button>
+  </div>
+</header>
+
+
+<div class="main-wrap">
+
+  <!-- STATS -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">全部工作</div>
+      <div class="stat-value cyan" id="statTotal">0</div>
+      <div class="stat-sub">本期進行中</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">已完成</div>
+      <div class="stat-value green" id="statDone">0</div>
+      <div class="stat-sub">工作完成</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">進行中</div>
+      <div class="stat-value cyan" id="statInprog">0</div>
+      <div class="stat-sub">積極處理中</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">停等中</div>
+      <div class="stat-value red" id="statBlocked">0</div>
+      <div class="stat-sub">需要協助</div>
+    </div>
+  </div>
+
+  <!-- TOOLBAR -->
+  <div class="toolbar">
+    <div class="toolbar-title">工作清單</div>
+    <div class="filter-group">
+      <button class="filter-btn active" onclick="setFilter('all', this)">全部</button>
+      <button class="filter-btn" onclick="setFilter('inprog', this)">進行中</button>
+      <button class="filter-btn" onclick="setFilter('pending', this)">待處理</button>
+      <button class="filter-btn" onclick="setFilter('done', this)">已完成</button>
+      <button class="filter-btn" onclick="setFilter('blocked', this)">停等</button>
+    </div>
+  </div>
+
+  <!-- SEARCH / ADVANCED FILTERS -->
+  <div class="search-row">
+    <input class="form-input search-input" id="searchInput" type="text" placeholder="搜尋工作名稱、專案、負責人…" oninput="renderTable()">
+    <select class="form-select filter-select" id="periodFilter" onchange="renderTable()">
+      <option value="">所有年月</option>
+    </select>
+    <select class="form-select filter-select" id="clientFilter" onchange="renderTable()">
+      <option value="">所有客戶</option>
+    </select>
+  </div>
+
+  <!-- TABLE -->
+  <div class="task-table">
+    <table>
+      <thead>
+        <tr>
+          <th>工作名稱</th>
+          <th class="col-project">專案</th>
+          <th class="col-client">客戶</th>
+          <th class="col-period">年月</th>
+          <th>狀態</th>
+          <th>進度</th>
+          <th class="col-assignee">負責人</th>
+          <th>預定完成日期</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="taskBody"></tbody>
+    </table>
+    <div id="emptyState" class="empty-state" style="display:none">
+      <div class="icon">📋</div>
+      <p>尚無符合條件的工作<br>點擊右上角「新增工作」開始吧！</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-title" id="modalTitle">新增工作</div>
+    <div class="form-group">
+      <label class="form-label">工作名稱 *</label>
+      <input class="form-input" id="fName" placeholder="例：完成 Q2 報告初稿">
+    </div>
+    <div class="form-group">
+      <label class="form-label">所屬專案</label>
+      <input class="form-input" id="fProject" placeholder="例：行銷企劃 2025">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">客戶別</label>
+        <input class="form-input" id="fClient" list="clientOptions" placeholder="例：台積電、鴻海">
+        <datalist id="clientOptions"></datalist>
+      </div>
+      <div class="form-group">
+        <label class="form-label">年份月份</label>
+        <input class="form-input" id="fPeriod" type="month">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">工作說明</label>
+      <textarea class="form-textarea" id="fDesc" placeholder="詳細說明工作內容、目標或備註…"></textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">狀態</label>
+        <select class="form-select" id="fStatus">
+          <option value="pending">待處理</option>
+          <option value="inprog">進行中</option>
+          <option value="done">已完成</option>
+          <option value="blocked">停等中</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">預定完成日期</label>
+        <input class="form-input" id="fDue" type="date">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">完成進度</label>
+      <div class="range-wrap">
+        <input type="range" id="fProgress" min="0" max="100" value="0" oninput="document.getElementById('fProgressVal').textContent=this.value+'%'">
+        <span class="range-pct" id="fProgressVal">0%</span>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">負責人</label>
+      <input class="form-input" id="fAssignee" placeholder="例：王小明、林小華">
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal()">取消</button>
+      <button class="btn-save" onclick="saveTask()">儲存工作</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM DELETE MODAL -->
+<div class="modal-overlay" id="confirmOverlay">
+  <div class="modal" style="width:380px;">
+    <div class="modal-title">刪除工作</div>
+    <p id="confirmText" style="font-size:0.88rem; color:var(--navy3); line-height:1.6; margin-bottom:1.5rem;"></p>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeConfirm()">取消</button>
+      <button class="btn-save" style="background:var(--red)" onclick="confirmDelete()">確定刪除</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">✓ <span id="toastMsg"></span></div>
+
+<script>
+  // ── DATA (shared online storage via kvdb.io — free, no login required) ──
+  const KVDB_BUCKET = '4Y6F3EwsHVZnQFR1NmvWhz';
+  const STORAGE_KEY = 'progresstrack-tasks';
+  const KVDB_URL = `https://kvdb.io/${KVDB_BUCKET}/${STORAGE_KEY}`;
+  let tasks = [];
+  let editId = null;
+  let currentFilter = 'all';
+  let nextId = 1;
+  let isSyncing = false;
+  let lastSavedJSON = '';
+  let failCount = 0;
+
+  const DEFAULT_TASKS = [
+    { id:1, name:'Q2 行銷活動企劃', project:'行銷部門', client:'台積電', period:'2026-06', desc:'', status:'inprog', progress:65, assignee:'王小明', due:'2026-06-30' },
+    { id:2, name:'產品功能需求文件', project:'產品開發', client:'鴻海', period:'2026-06', desc:'', status:'done', progress:100, assignee:'林小華', due:'2026-06-10' },
+    { id:3, name:'新版 UI 設計稿審核', project:'設計部門', client:'台積電', period:'2026-07', desc:'', status:'pending', progress:20, assignee:'陳大偉', due:'2026-07-05' },
+    { id:4, name:'第三方 API 串接', project:'產品開發', client:'聯發科', period:'2026-06', desc:'', status:'blocked', progress:40, assignee:'張美玲', due:'2026-06-20' },
+    { id:5, name:'客戶提案簡報製作', project:'業務部門', client:'鴻海', period:'2026-06', desc:'', status:'inprog', progress:80, assignee:'李建國', due:'2026-06-25' },
+  ];
+
+  function setSyncStatus(state) {
+    const el = document.getElementById('syncStatus');
+    const retryBtn = document.getElementById('retryBtn');
+    if (!el) return;
+    if (state === 'syncing') { el.textContent = '🔄 同步中…'; el.className = 'sync-status'; }
+    else if (state === 'synced') { el.textContent = '✓ 已同步'; el.className = 'sync-status synced'; }
+    else if (state === 'error') { el.textContent = '⚠ 連線異常'; el.className = 'sync-status error'; }
+    if (retryBtn) retryBtn.style.display = (state === 'error') ? 'inline-block' : 'none';
+  }
+
+  function manualRetry() {
+    failCount = 0;
+    loadTasks(false);
+  }
+
+  async function loadTasks(isPoll) {
+    if (isPoll && isSyncing) return; // skip poll while a save is in flight
+    if (!isPoll) setSyncStatus('syncing');
+    try {
+      const res = await fetch(KVDB_URL, { cache: 'no-store' });
+
+      if (res.status === 404) {
+        // Genuinely first run — key doesn't exist yet. Seed it once.
+        tasks = DEFAULT_TASKS;
+        nextId = tasks.reduce((m,t)=>Math.max(m,t.id),0)+1;
+        renderTable();
+        await persistTasks();
+        return;
+      }
+
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+
+      const json = await res.text();
+
+      // Avoid wiping local edits mid-typing during a background poll
+      if (isPoll && json === lastSavedJSON) { failCount = 0; setSyncStatus('synced'); return; }
+
+      tasks = JSON.parse(json);
+      lastSavedJSON = json;
+      nextId = tasks.reduce((m,t)=>Math.max(m,t.id),0)+1;
+      renderTable();
+      failCount = 0;
+      setSyncStatus('synced');
+    } catch (err) {
+      // IMPORTANT: a fetch error (network blip, CORS, etc.) is NOT the same
+      // as "no data yet" (that's a clean 404 above). Never overwrite shared
+      // storage with defaults on a thrown error — that would destroy
+      // real co-worker data.
+      failCount++;
+      console.warn(`讀取共用資料失敗（第 ${failCount} 次）`, err);
+      if (!isPoll) {
+        if (failCount <= 4) {
+          // Retry with backoff before giving up
+          setTimeout(() => loadTasks(false), failCount * 1000);
+        } else {
+          // Repeated failures: show sample data LOCALLY for display only.
+          // Do NOT call persistTasks() — that would overwrite shared data.
+          if (!tasks.length) {
+            tasks = DEFAULT_TASKS;
+            nextId = tasks.reduce((m,t)=>Math.max(m,t.id),0)+1;
+          }
+          renderTable();
+          setSyncStatus('error');
+          showToast('⚠ 無法連線共用資料，目前顯示暫存內容，請重新整理頁面');
+        }
+      } else {
+        // One-off network blips during polling shouldn't alarm the user.
+        if (failCount === 1) {
+          setTimeout(() => loadTasks(true), 2000);
+        } else if (failCount >= 3) {
+          setSyncStatus('error');
+        }
+      }
+    }
+  }
+
+  async function persistTasks(retryCount) {
+    retryCount = retryCount || 0;
+    setSyncStatus('syncing');
+    isSyncing = true;
+    const json = JSON.stringify(tasks);
+    lastSavedJSON = json;
+    try {
+      const res = await fetch(KVDB_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: json
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      failCount = 0;
+      setSyncStatus('synced');
+      isSyncing = false;
+    } catch (err) {
+      console.warn(`儲存共用資料失敗（第 ${retryCount+1} 次嘗試）`, err);
+      if (retryCount < 2) {
+        setTimeout(() => persistTasks(retryCount+1), 1500);
+        return; // keep isSyncing = true until the retry resolves
+      }
+      isSyncing = false;
+      setSyncStatus('error');
+      showToast('⚠ 儲存失敗，請檢查網路後再試');
+    }
+  }
+
+  // Backwards-compatible alias
+  async function saveTasks() { await persistTasks(); }
+
+  // ── TODAY ──
+  const now = new Date();
+  document.getElementById('todayLabel').textContent =
+    now.toLocaleDateString('zh-TW', {year:'numeric',month:'long',day:'numeric',weekday:'short'});
+
+  // ── RENDER ──
+  const statusMap = {
+    done:    { label:'已完成', cls:'done',    fill:'fill-green', color:'green' },
+    inprog:  { label:'進行中', cls:'inprog',  fill:'fill-cyan',  color:'cyan'  },
+    pending: { label:'待處理', cls:'pending', fill:'fill-amber', color:'amber' },
+    blocked: { label:'停等中', cls:'blocked', fill:'fill-red',   color:'red'   },
+  };
+  const avatarColors = ['#06B6D4','#8B5CF6','#10B981','#F59E0B','#EF4444','#EC4899'];
+
+  function initials(name) {
+    return name.trim().slice(0,2) || '??';
+  }
+  function avatarColor(name) {
+    let h = 0;
+    for (let c of name) h = (h * 31 + c.charCodeAt(0)) & 0xffff;
+    return avatarColors[h % avatarColors.length];
+  }
+
+  function renderTable() {
+    // Populate period & client filter dropdowns from current data
+    populateFilterOptions();
+
+    let filtered = currentFilter === 'all'
+      ? tasks
+      : tasks.filter(t => t.status === currentFilter);
+
+    const periodFilter = document.getElementById('periodFilter').value;
+    const clientFilter = document.getElementById('clientFilter').value;
+    const searchTerm = document.getElementById('searchInput').value.trim().toLowerCase();
+
+    if (periodFilter) filtered = filtered.filter(t => (t.period||'') === periodFilter);
+    if (clientFilter) filtered = filtered.filter(t => (t.client||'') === clientFilter);
+    if (searchTerm) {
+      filtered = filtered.filter(t =>
+        (t.name||'').toLowerCase().includes(searchTerm) ||
+        (t.project||'').toLowerCase().includes(searchTerm) ||
+        (t.client||'').toLowerCase().includes(searchTerm) ||
+        (t.assignee||'').toLowerCase().includes(searchTerm) ||
+        (t.desc||'').toLowerCase().includes(searchTerm)
+      );
+    }
+
+    const tbody = document.getElementById('taskBody');
+    const empty = document.getElementById('emptyState');
+
+    if (!filtered.length) {
+      tbody.innerHTML = '';
+      empty.style.display = 'block';
+      updateStats();
+      return;
+    }
+    empty.style.display = 'none';
+
+    tbody.innerHTML = filtered.map(t => {
+      const sm = statusMap[t.status] || statusMap.pending;
+      const dueStr = t.due ? formatDate(t.due) : '—';
+      const isOverdue = t.due && new Date(t.due) < now && t.status !== 'done';
+      const pct = Math.min(100, Math.max(0, t.progress||0));
+      const bg = avatarColor(t.assignee||'?');
+      const init = initials(t.assignee||'?');
+      return `
+      <tr>
+        <td>
+          <div class="task-name">${esc(t.name)}</div>
+          <div class="task-project">${esc(t.desc||'')}</div>
+        </td>
+        <td class="col-project"><span style="font-size:.8rem;color:var(--navy3)">${esc(t.project||'—')}</span></td>
+        <td class="col-client"><span style="font-size:.8rem;color:var(--navy3)">${esc(t.client||'—')}</span></td>
+        <td class="col-period"><span style="font-size:.8rem;color:var(--navy3)">${esc(t.period||'—')}</span></td>
+        <td><span class="badge ${sm.cls}">${sm.label}</span></td>
+        <td>
+          <div class="progress-wrap">
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill ${sm.fill}" style="width:${pct}%"></div>
+            </div>
+            <div class="progress-pct">${pct}%</div>
+          </div>
+        </td>
+        <td class="col-assignee">
+          ${t.assignee ? `<span class="avatar" style="background:${bg}" title="${esc(t.assignee)}">${init}</span>
+          <span style="font-size:.8rem;margin-left:10px;">${esc(t.assignee)}</span>` : '—'}
+        </td>
+        <td><span class="due-date${isOverdue?' overdue':''}">${dueStr}</span></td>
+        <td>
+          <div class="row-actions">
+            <button class="icon-btn" onclick="openEdit(${t.id})" title="編輯">✏️</button>
+            <button class="icon-btn danger" onclick="deleteTask(${t.id})" title="刪除">🗑️</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+
+    updateStats();
+  }
+
+  function updateStats() {
+    document.getElementById('statTotal').textContent   = tasks.length;
+    document.getElementById('statDone').textContent    = tasks.filter(t=>t.status==='done').length;
+    document.getElementById('statInprog').textContent  = tasks.filter(t=>t.status==='inprog').length;
+    document.getElementById('statBlocked').textContent = tasks.filter(t=>t.status==='blocked').length;
+  }
+
+  function formatDate(s) {
+    const d = new Date(s + 'T00:00:00');
+    return d.toLocaleDateString('zh-TW', {month:'numeric',day:'numeric'});
+  }
+
+  // Format "2026-06" -> "2026年6月" for dropdown labels
+  function formatPeriodLabel(p) {
+    const [y, m] = p.split('-');
+    return `${y}年${parseInt(m,10)}月`;
+  }
+
+  // Build the 年月 / 客戶 filter dropdowns from current task data,
+  // preserving the user's current selection if still valid.
+  function populateFilterOptions() {
+    const periodSel = document.getElementById('periodFilter');
+    const clientSel = document.getElementById('clientFilter');
+    const prevPeriod = periodSel.value;
+    const prevClient = clientSel.value;
+
+    const periods = [...new Set(tasks.map(t=>t.period).filter(Boolean))].sort().reverse();
+    const clients = [...new Set(tasks.map(t=>t.client).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'zh-Hant'));
+
+    periodSel.innerHTML = '<option value="">所有年月</option>' +
+      periods.map(p=>`<option value="${esc(p)}">${esc(formatPeriodLabel(p))}</option>`).join('');
+    clientSel.innerHTML = '<option value="">所有客戶</option>' +
+      clients.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');
+
+    if (periods.includes(prevPeriod)) periodSel.value = prevPeriod;
+    if (clients.includes(prevClient)) clientSel.value = prevClient;
+
+    // Update the datalist used for client autocomplete in the form
+    const datalist = document.getElementById('clientOptions');
+    if (datalist) datalist.innerHTML = clients.map(c=>`<option value="${esc(c)}">`).join('');
+  }
+
+  function esc(s) {
+    return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // Returns "YYYY-MM" for the current month (for default new-task period)
+  function currentMonth() {
+    const y = now.getFullYear();
+    const m = String(now.getMonth()+1).padStart(2,'0');
+    return `${y}-${m}`;
+  }
+
+  // ── FILTER ──
+  function setFilter(f, btn) {
+    currentFilter = f;
+    document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    renderTable();
+  }
+
+  // ── MODAL ──
+  function openModal() {
+    editId = null;
+    document.getElementById('modalTitle').textContent = '新增工作';
+    document.getElementById('fName').value = '';
+    document.getElementById('fProject').value = '';
+    document.getElementById('fClient').value = '';
+    document.getElementById('fPeriod').value = currentMonth();
+    document.getElementById('fDesc').value = '';
+    document.getElementById('fStatus').value = 'pending';
+    document.getElementById('fDue').value = '';
+    document.getElementById('fProgress').value = 0;
+    document.getElementById('fProgressVal').textContent = '0%';
+    document.getElementById('fAssignee').value = '';
+    document.getElementById('modalOverlay').classList.add('open');
+  }
+
+  function openEdit(id) {
+    const t = tasks.find(x=>x.id===id);
+    if (!t) return;
+    editId = id;
+    document.getElementById('modalTitle').textContent = '編輯工作';
+    document.getElementById('fName').value = t.name;
+    document.getElementById('fProject').value = t.project||'';
+    document.getElementById('fClient').value = t.client||'';
+    document.getElementById('fPeriod').value = t.period||'';
+    document.getElementById('fDesc').value = t.desc||'';
+    document.getElementById('fStatus').value = t.status;
+    document.getElementById('fDue').value = t.due||'';
+    document.getElementById('fProgress').value = t.progress||0;
+    document.getElementById('fProgressVal').textContent = (t.progress||0)+'%';
+    document.getElementById('fAssignee').value = t.assignee||'';
+    document.getElementById('modalOverlay').classList.add('open');
+  }
+
+  function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('open');
+  }
+
+  document.getElementById('modalOverlay').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+
+  document.getElementById('confirmOverlay').addEventListener('click', function(e) {
+    if (e.target === this) closeConfirm();
+  });
+
+  async function saveTask() {
+    const name = document.getElementById('fName').value.trim();
+    if (!name) { document.getElementById('fName').focus(); return; }
+    const task = {
+      id: editId || nextId++,
+      name,
+      project: document.getElementById('fProject').value.trim(),
+      client: document.getElementById('fClient').value.trim(),
+      period: document.getElementById('fPeriod').value,
+      desc: document.getElementById('fDesc').value.trim(),
+      status: document.getElementById('fStatus').value,
+      due: document.getElementById('fDue').value,
+      progress: parseInt(document.getElementById('fProgress').value)||0,
+      assignee: document.getElementById('fAssignee').value.trim(),
+      updatedAt: Date.now(),
+    };
+    if (editId) {
+      const idx = tasks.findIndex(t=>t.id===editId);
+      tasks[idx] = task;
+      showToast('工作已更新');
+    } else {
+      tasks.push(task);
+      showToast('工作已新增');
+    }
+    renderTable();
+    closeModal();
+    await persistTasks();
+  }
+
+  let pendingDeleteId = null;
+
+  function deleteTask(id) {
+    pendingDeleteId = id;
+    const t = tasks.find(x=>x.id===id);
+    document.getElementById('confirmText').textContent =
+      `確定要刪除「${t ? t.name : '此工作項目'}」嗎？此操作將同步給所有人，且無法復原。`;
+    document.getElementById('confirmOverlay').classList.add('open');
+  }
+
+  function closeConfirm() {
+    pendingDeleteId = null;
+    document.getElementById('confirmOverlay').classList.remove('open');
+  }
+
+  async function confirmDelete() {
+    if (pendingDeleteId === null) return;
+    const id = pendingDeleteId;
+    closeConfirm();
+    tasks = tasks.filter(t=>t.id!==id);
+    renderTable();
+    showToast('工作已刪除');
+    await persistTasks();
+  }
+
+  // ── TOAST ──
+  function showToast(msg) {
+    const el = document.getElementById('toast');
+    document.getElementById('toastMsg').textContent = msg;
+    el.classList.add('show');
+    setTimeout(()=>el.classList.remove('show'), 2200);
+  }
+
+  // ── INIT ──
+  (async function init() {
+    await loadTasks(false);
+    // Poll periodically so everyone sees co-workers' updates
+    setInterval(() => loadTasks(true), 8000);
+  })();
+
+  // Refresh immediately when the tab regains focus
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) loadTasks(true);
+  });
+
+</script>
+</body>
+</html>
