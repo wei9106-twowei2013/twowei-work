@@ -602,11 +602,23 @@
     loadTasks(false);
   }
 
+  // Wrap fetch with a timeout so a hung request can never leave the
+  // sync indicator stuck on "同步中" forever.
+  async function fetchWithTimeout(url, options, timeoutMs) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs || 8000);
+    try {
+      return await fetch(url, { ...options, signal: controller.signal });
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   async function loadTasks(isPoll) {
     if (isPoll && isSyncing) return; // skip poll while a save is in flight
     if (!isPoll) setSyncStatus('syncing');
     try {
-      const res = await fetch(KVDB_URL, { cache: 'no-store' });
+      const res = await fetchWithTimeout(KVDB_URL, { cache: 'no-store' });
 
       if (res.status === 404) {
         // Genuinely first run — key doesn't exist yet. Seed it once.
@@ -670,9 +682,9 @@
     const json = JSON.stringify(tasks);
     lastSavedJSON = json;
     try {
-      const res = await fetch(KVDB_URL, {
+      const res = await fetchWithTimeout(KVDB_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'text/plain' },
         body: json
       });
       if (!res.ok) throw new Error('HTTP ' + res.status);
