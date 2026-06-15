@@ -171,6 +171,11 @@
     font-weight: 600;
     flex: 1;
   }
+  .reorder-hint {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-right: 12px;
+  }
   .filter-group { display: flex; gap: 6px; }
   .filter-btn {
     border: 1px solid var(--border);
@@ -236,6 +241,21 @@
   .task-name { font-weight: 600; font-size: 0.9rem; margin-bottom: 2px; }
   .task-project { font-size: 0.75rem; color: var(--muted); }
   .col-client, .col-period { white-space: nowrap; }
+
+  /* DRAG TO REORDER */
+  .col-drag { width: 28px; padding-left: 8px !important; padding-right: 0 !important; }
+  .drag-handle {
+    cursor: grab;
+    color: var(--muted);
+    font-size: 1rem;
+    user-select: none;
+    display: inline-block;
+  }
+  .drag-handle:active { cursor: grabbing; }
+  tr.row-draggable.dragging { opacity: 0.4; }
+  tr.row-draggable.drag-over {
+    box-shadow: inset 0 2px 0 0 var(--cyan);
+  }
 
   /* STATUS BADGE */
   .badge {
@@ -606,6 +626,7 @@
   <!-- TOOLBAR -->
   <div class="toolbar">
     <div class="toolbar-title">工作清單</div>
+    <div class="reorder-hint" id="reorderHint">💡 在「全部」檢視下，可拖曳 ⠿ 調整工作順序</div>
     <div class="filter-group">
       <button class="filter-btn active" onclick="setFilter('all', this)">全部</button>
       <button class="filter-btn" onclick="setFilter('inprog', this)">進行中</button>
@@ -631,6 +652,7 @@
     <table>
       <thead>
         <tr>
+          <th class="col-drag"></th>
           <th>工作名稱</th>
           <th class="col-project">專案</th>
           <th class="col-client">客戶</th>
@@ -914,6 +936,8 @@
     populateFilterOptions();
 
     const filtered = getFilteredTasks();
+    const reorderable = canReorder();
+    document.getElementById('reorderHint').style.display = reorderable ? 'block' : 'none';
 
     const tbody = document.getElementById('taskBody');
     const empty = document.getElementById('emptyState');
@@ -932,8 +956,10 @@
       const isOverdue = t.due && new Date(t.due) < now && t.status !== 'done';
       const pct = Math.min(100, Math.max(0, t.progress||0));
       const avatarsHtml = renderAvatars(t.assignee, t.assigneeColor);
+      const draggable = reorderable ? 'true' : 'false';
       return `
-      <tr>
+      <tr draggable="${draggable}" data-id="${t.id}" class="${reorderable ? 'row-draggable' : ''}">
+        <td class="col-drag">${reorderable ? '<span class="drag-handle" title="拖曳排序">⠿</span>' : ''}</td>
         <td>
           <div class="task-name">${esc(t.name)}</div>
           <div class="task-project">${esc(t.desc||'')}</div>
@@ -963,7 +989,55 @@
       </tr>`;
     }).join('');
 
+    if (reorderable) attachDragHandlers();
     updateStats();
+  }
+
+  // ── DRAG TO REORDER ──
+  let dragSrcId = null;
+
+  function attachDragHandlers() {
+    const tbody = document.getElementById('taskBody');
+    tbody.querySelectorAll('tr.row-draggable').forEach(row => {
+      row.addEventListener('dragstart', (e) => {
+        dragSrcId = parseInt(row.dataset.id);
+        row.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', String(dragSrcId));
+      });
+      row.addEventListener('dragend', () => {
+        row.classList.remove('dragging');
+        tbody.querySelectorAll('tr.drag-over').forEach(r=>r.classList.remove('drag-over'));
+      });
+      row.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        if (parseInt(row.dataset.id) !== dragSrcId) row.classList.add('drag-over');
+      });
+      row.addEventListener('dragleave', () => {
+        row.classList.remove('drag-over');
+      });
+      row.addEventListener('drop', (e) => {
+        e.preventDefault();
+        row.classList.remove('drag-over');
+        const targetId = parseInt(row.dataset.id);
+        if (dragSrcId === null || targetId === dragSrcId) return;
+        reorderTasks(dragSrcId, targetId);
+      });
+    });
+  }
+
+  async function reorderTasks(srcId, targetId) {
+    const srcIdx = tasks.findIndex(t => t.id === srcId);
+    const targetIdx = tasks.findIndex(t => t.id === targetId);
+    if (srcIdx === -1 || targetIdx === -1) return;
+
+    const [moved] = tasks.splice(srcIdx, 1);
+    // Recompute target index after removal
+    const newTargetIdx = tasks.findIndex(t => t.id === targetId);
+    tasks.splice(newTargetIdx, 0, moved);
+
+    renderTable();
+    await persistTasks();
   }
 
   function updateStats() {
@@ -1020,6 +1094,16 @@
   }
 
   // ── PDF EXPORT (uses browser print-to-PDF) ──
+  // Reordering is only safe when the displayed list is exactly `tasks`
+  // (no status filter, search, or dropdown filters) so drag positions map
+  // 1:1 to array indices.
+  function canReorder() {
+    const periodFilter = document.getElementById('periodFilter').value;
+    const clientFilter = document.getElementById('clientFilter').value;
+    const searchTerm = document.getElementById('searchInput').value.trim();
+    return currentFilter === 'all' && !periodFilter && !clientFilter && !searchTerm;
+  }
+
   function getFilteredTasks() {
     let filtered = currentFilter === 'all'
       ? tasks
