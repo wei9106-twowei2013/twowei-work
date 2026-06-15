@@ -362,6 +362,8 @@
   }
   .icon-btn:hover { background: var(--navy); color: white; border-color: var(--navy); }
   .icon-btn.danger:hover { background: var(--red); border-color: var(--red); }
+  .complete-btn:hover { background: var(--green); border-color: var(--green); color: white; }
+  .complete-btn.active { background: var(--green); border-color: var(--green); color: white; }
 
   /* ── LOGIN OVERLAY ── */
   .login-overlay {
@@ -982,6 +984,7 @@
         <td><span class="due-date${isOverdue?' overdue':''}">${dueStr}</span></td>
         <td>
           <div class="row-actions">
+            <button class="icon-btn complete-btn${t.status==='done' ? ' active' : ''}" onclick="toggleComplete(${t.id})" title="${t.status==='done' ? '取消完成' : '標記為已完成'}">✓</button>
             <button class="icon-btn" onclick="openEdit(${t.id})" title="編輯">✏️</button>
             <button class="icon-btn danger" onclick="deleteTask(${t.id})" title="刪除">🗑️</button>
           </div>
@@ -1295,6 +1298,26 @@
     tasks = tasks.filter(t=>t.id!==id);
     renderTable();
     showToast('工作已刪除');
+    await persistTasks();
+  }
+
+  // Quick toggle: mark as done (sets progress to 100%), or revert back to
+  // 進行中 (keeps the progress value it had before being marked done).
+  async function toggleComplete(id) {
+    const t = tasks.find(x=>x.id===id);
+    if (!t) return;
+    if (t.status === 'done') {
+      t.status = 'inprog';
+      if (t.progress === 100) t.progress = t.prevProgress ?? 80;
+      showToast('已取消完成');
+    } else {
+      t.prevProgress = t.progress;
+      t.status = 'done';
+      t.progress = 100;
+      showToast('工作已標記為完成');
+    }
+    t.updatedAt = Date.now();
+    renderTable();
     await persistTasks();
   }
 
