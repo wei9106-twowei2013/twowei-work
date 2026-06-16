@@ -529,12 +529,128 @@
   .empty-state .icon { font-size: 2.5rem; margin-bottom: 1rem; }
   .empty-state p { font-size: 0.9rem; }
 
+  /* ══════════════════════════════════════════
+     RESPONSIVE — Mobile-first card layout
+     ══════════════════════════════════════════ */
   @media (max-width: 768px) {
-    .stats-row { grid-template-columns: repeat(2, 1fr); }
-    .col-project, .col-assignee, .col-client, .col-period { display: none; }
+
+    /* Header */
+    header {
+      padding: 0 1rem;
+      height: auto;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding-top: 10px;
+      padding-bottom: 10px;
+    }
+    .header-right {
+      flex-wrap: wrap;
+      gap: 6px;
+      width: 100%;
+    }
+    .btn-new, .btn-pdf {
+      font-size: 0.75rem;
+      padding: 6px 10px;
+      flex: 1;
+      justify-content: center;
+    }
+    .sync-status, .today-label { font-size: 0.7rem; }
+
+    /* Stats */
+    .stats-row { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .stat-value { font-size: 1.6rem; }
+
+    /* Toolbar */
+    .toolbar { flex-wrap: wrap; gap: 8px; }
+    .filter-group { width: 100%; overflow-x: auto; display: flex; gap: 6px; padding-bottom: 4px; }
+    .filter-btn { white-space: nowrap; font-size: 0.75rem; }
+    .reorder-hint { font-size: 0.72rem; width: 100%; }
+
+    /* Search row */
+    .search-row { flex-direction: column; gap: 8px; }
+    .filter-select, .search-input { width: 100%; }
+
+    /* Hide the desktop TABLE, show CARDS instead */
+    .task-table table { display: none; }
+    .task-table { background: transparent; border: none; border-radius: 0; overflow: visible; }
+    #emptyState { display: none; }
+
+    /* Card list */
+    .card-list { display: flex; flex-direction: column; gap: 10px; }
+    .task-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 14px 10px;
+      position: relative;
+      touch-action: none; /* needed for touch drag */
+    }
+    .task-card.dragging { opacity: 0.4; box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
+    .task-card.drag-over { box-shadow: inset 0 3px 0 0 var(--cyan); }
+
+    .card-top { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
+    .card-drag-handle {
+      font-size: 1.1rem;
+      color: var(--muted);
+      cursor: grab;
+      padding: 2px 4px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .card-title-block { flex: 1; min-width: 0; }
+    .card-name { font-weight: 700; font-size: 0.95rem; color: var(--navy); line-height: 1.3; }
+    .card-desc { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+
+    .card-meta {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 12px;
+      margin-bottom: 10px;
+    }
+    .card-meta-item { display: flex; flex-direction: column; }
+    .card-meta-label { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 2px; }
+    .card-meta-value { font-size: 0.8rem; color: var(--navy3); font-weight: 500; }
+
+    .card-progress-row { margin-bottom: 10px; }
+    .card-progress-bar {
+      background: var(--border);
+      border-radius: 4px;
+      height: 6px;
+      overflow: hidden;
+      margin-bottom: 4px;
+    }
+    .card-progress-fill { height: 100%; border-radius: 4px; }
+    .card-progress-pct { font-size: 0.75rem; font-weight: 600; color: var(--navy3); }
+
+    .card-footer { display: flex; align-items: center; justify-content: space-between; }
+    .card-assignee { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .card-actions { display: flex; gap: 6px; }
+    .card-actions .icon-btn {
+      opacity: 1 !important; /* always visible on mobile */
+      width: 32px; height: 32px;
+      font-size: 0.9rem;
+    }
+
+    /* Show card list, hide empty state div (handled in JS) */
+    #cardList { margin-top: 0; }
+
+    /* Modal full-screen on mobile */
+    .modal { width: 100% !important; max-width: 100% !important; margin: 0; border-radius: 16px 16px 0 0; position: fixed; bottom: 0; max-height: 90vh; }
+    .modal-overlay { align-items: flex-end; }
+
+    /* Progress bar */
     .progress-wrap { width: 80px; }
-    .search-row { flex-direction: column; }
-    .filter-select { width: 100%; }
+  }
+
+  /* Tablet tweaks */
+  @media (min-width: 769px) {
+    .card-list { display: none; } /* hide cards on desktop */
+    #cardList { display: none; }
+  }
+
+  @media (max-width: 480px) {
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .main-wrap { padding: 1rem; }
   }
 
   /* ── PRINT / PDF EXPORT ── */
@@ -679,6 +795,9 @@
       <p>尚無符合條件的工作<br>點擊右上角「新增工作」開始吧！</p>
     </div>
   </div>
+
+  <!-- MOBILE CARD LIST (shown on small screens instead of table) -->
+  <div id="cardList" class="card-list"></div>
 
 </div>
 
@@ -991,7 +1110,62 @@
     }).join('');
 
     if (reorderable) attachDragHandlers();
+
+    // ── MOBILE CARD LIST ──
+    renderCards(filtered, reorderable);
+
     updateStats();
+  }
+
+  function renderCards(filtered, reorderable) {
+    const cardList = document.getElementById('cardList');
+    if (!cardList) return;
+
+    if (!filtered.length) {
+      cardList.innerHTML = `<div class="empty-state"><div class="icon">📋</div><p>尚無符合條件的工作<br>點擊右上角「新增工作」開始吧！</p></div>`;
+      return;
+    }
+
+    cardList.innerHTML = filtered.map(t => {
+      const sm = statusMap[t.status] || statusMap.pending;
+      const dueStr = t.due ? formatDate(t.due) : '—';
+      const isOverdue = t.due && new Date(t.due) < now && t.status !== 'done';
+      const pct = Math.min(100, Math.max(0, t.progress||0));
+      const avatarsHtml = renderAvatars(t.assignee, t.assigneeColor);
+      return `
+      <div class="task-card" data-id="${t.id}" ${reorderable ? 'data-draggable="true"' : ''}>
+        <div class="card-top">
+          ${reorderable ? `<span class="card-drag-handle" title="長按拖曳排序">⠿</span>` : ''}
+          <div class="card-title-block">
+            <div class="card-name">${esc(t.name)}</div>
+            ${t.desc ? `<div class="card-desc">${esc(t.desc)}</div>` : ''}
+          </div>
+          <span class="badge ${sm.cls}" style="flex-shrink:0">${sm.label}</span>
+        </div>
+        <div class="card-meta">
+          ${t.project ? `<div class="card-meta-item"><span class="card-meta-label">專案</span><span class="card-meta-value">${esc(t.project)}</span></div>` : ''}
+          ${t.client ? `<div class="card-meta-item"><span class="card-meta-label">客戶</span><span class="card-meta-value">${esc(t.client)}</span></div>` : ''}
+          ${t.period ? `<div class="card-meta-item"><span class="card-meta-label">年月</span><span class="card-meta-value">${esc(t.period)}</span></div>` : ''}
+          ${t.due ? `<div class="card-meta-item"><span class="card-meta-label">預定完成</span><span class="card-meta-value${isOverdue?' overdue':''}">${dueStr}</span></div>` : ''}
+        </div>
+        <div class="card-progress-row">
+          <div class="card-progress-bar">
+            <div class="card-progress-fill ${sm.fill}" style="width:${pct}%"></div>
+          </div>
+          <div class="card-progress-pct">${pct}%</div>
+        </div>
+        <div class="card-footer">
+          <div class="card-assignee">${avatarsHtml}</div>
+          <div class="card-actions">
+            <button class="icon-btn complete-btn${t.status==='done' ? ' active' : ''}" onclick="toggleComplete(${t.id})" title="${t.status==='done' ? '取消完成' : '標記完成'}">✓</button>
+            <button class="icon-btn" onclick="openEdit(${t.id})" title="編輯">✏️</button>
+            <button class="icon-btn danger" onclick="deleteTask(${t.id})" title="刪除">🗑️</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+
+    if (reorderable) attachCardDragHandlers();
   }
 
   // ── DRAG TO REORDER ──
@@ -1039,6 +1213,105 @@
 
     renderTable();
     await persistTasks();
+  }
+
+  // ── MOBILE TOUCH DRAG (long-press to reorder cards) ──
+  let touchDragId = null;
+  let touchDragEl = null;
+  let touchDragClone = null;
+  let touchLongPressTimer = null;
+  const LONG_PRESS_MS = 500;
+
+  function attachCardDragHandlers() {
+    const cardList = document.getElementById('cardList');
+    if (!cardList) return;
+
+    cardList.querySelectorAll('.task-card[data-draggable="true"]').forEach(card => {
+      card.addEventListener('touchstart', onCardTouchStart, { passive: false });
+      card.addEventListener('touchmove', onCardTouchMove, { passive: false });
+      card.addEventListener('touchend', onCardTouchEnd);
+      card.addEventListener('touchcancel', onCardTouchCancel);
+    });
+  }
+
+  function onCardTouchStart(e) {
+    const card = e.currentTarget;
+    touchLongPressTimer = setTimeout(() => {
+      touchDragId = parseInt(card.dataset.id);
+      touchDragEl = card;
+      card.classList.add('dragging');
+
+      // Create a visual clone that follows the finger
+      touchDragClone = card.cloneNode(true);
+      touchDragClone.style.cssText = `
+        position: fixed; z-index: 999; pointer-events: none;
+        width: ${card.offsetWidth}px; opacity: 0.85;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.2); border-radius: 12px;
+      `;
+      document.body.appendChild(touchDragClone);
+      updateClonePosition(e.touches[0]);
+
+      // Haptic feedback on supported devices
+      if (navigator.vibrate) navigator.vibrate(50);
+    }, LONG_PRESS_MS);
+  }
+
+  function onCardTouchMove(e) {
+    if (!touchDragId) {
+      clearTimeout(touchLongPressTimer);
+      return;
+    }
+    e.preventDefault();
+    const touch = e.touches[0];
+    updateClonePosition(touch);
+
+    // Find which card the finger is over
+    touchDragClone.style.display = 'none';
+    const elBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+    touchDragClone.style.display = '';
+
+    document.querySelectorAll('.task-card.drag-over').forEach(c => c.classList.remove('drag-over'));
+    const targetCard = elBelow?.closest?.('.task-card');
+    if (targetCard && parseInt(targetCard.dataset.id) !== touchDragId) {
+      targetCard.classList.add('drag-over');
+    }
+  }
+
+  function onCardTouchEnd(e) {
+    clearTimeout(touchLongPressTimer);
+    if (!touchDragId) return;
+
+    const touch = e.changedTouches[0];
+    touchDragClone.style.display = 'none';
+    const elBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+    touchDragClone.style.display = '';
+
+    const targetCard = elBelow?.closest?.('.task-card');
+    const targetId = targetCard ? parseInt(targetCard.dataset.id) : null;
+
+    // Cleanup
+    if (touchDragEl) touchDragEl.classList.remove('dragging');
+    if (touchDragClone) touchDragClone.remove();
+    document.querySelectorAll('.task-card.drag-over').forEach(c => c.classList.remove('drag-over'));
+
+    const srcId = touchDragId;
+    touchDragId = null; touchDragEl = null; touchDragClone = null;
+
+    if (targetId && targetId !== srcId) reorderTasks(srcId, targetId);
+  }
+
+  function onCardTouchCancel() {
+    clearTimeout(touchLongPressTimer);
+    if (touchDragEl) touchDragEl.classList.remove('dragging');
+    if (touchDragClone) touchDragClone.remove();
+    document.querySelectorAll('.task-card.drag-over').forEach(c => c.classList.remove('drag-over'));
+    touchDragId = null; touchDragEl = null; touchDragClone = null;
+  }
+
+  function updateClonePosition(touch) {
+    if (!touchDragClone) return;
+    touchDragClone.style.left = (touch.clientX - touchDragClone.offsetWidth / 2) + 'px';
+    touchDragClone.style.top  = (touch.clientY - 40) + 'px';
   }
 
   function updateStats() {
