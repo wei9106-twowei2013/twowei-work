@@ -6,6 +6,9 @@
 <title>工作進度回報系統</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<!-- Firebase SDK (compat version — works in plain HTML without bundler) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -756,8 +759,19 @@
 <div class="toast" id="toast">✓ <span id="toastMsg"></span></div>
 
 <script>
-  // ── DATA (shared online storage via Cloudflare Worker — free, no login required) ──
-  const KVDB_URL = 'https://twowei-work.wei9106.workers.dev';
+  // ── DATA (Firestore — free, no login required for visitors) ──
+  const firebaseConfig = {
+    apiKey: "AIzaSyD6t7woI7dDhIU-Ta9bQJyIUcdyNOHMkV8",
+    authDomain: "twowei-progresstrack.firebaseapp.com",
+    projectId: "twowei-progresstrack",
+    storageBucket: "twowei-progresstrack.firebasestorage.app",
+    messagingSenderId: "1016966707396",
+    appId: "1:1016966707396:web:1aeb01a954f8c261b7f191"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+  const DOC_REF = db.collection('progresstrack').doc('tasks');
+
   let tasks = [];
   let editId = null;
   let currentFilter = 'all';
@@ -789,75 +803,45 @@
     loadTasks(false);
   }
 
-  // Wrap fetch with a timeout so a hung request can never leave the
-  // sync indicator stuck on "同步中" forever.
-  async function fetchWithTimeout(url, options, timeoutMs) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs || 8000);
-    try {
-      return await fetch(url, { ...options, signal: controller.signal });
-    } finally {
-      clearTimeout(timer);
-    }
-  }
-
   async function loadTasks(isPoll) {
-    if (isPoll && isSyncing) return; // skip poll while a save is in flight
+    if (isPoll && isSyncing) return;
     if (!isPoll) setSyncStatus('syncing');
     try {
-      const res = await fetchWithTimeout(KVDB_URL, { cache: 'no-store' });
-
-      if (res.status === 404) {
-        // Genuinely first run — key doesn't exist yet. Seed it once.
+      const snap = await DOC_REF.get();
+      if (!snap.exists) {
+        // First ever load — seed with defaults
         tasks = DEFAULT_TASKS;
         nextId = tasks.reduce((m,t)=>Math.max(m,t.id),0)+1;
         renderTable();
         await persistTasks();
         return;
       }
-
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-
-      const json = await res.text();
-
-      // Avoid wiping local edits mid-typing during a background poll
+      const json = JSON.stringify(snap.data().tasks);
       if (isPoll && json === lastSavedJSON) { failCount = 0; setSyncStatus('synced'); return; }
-
-      tasks = JSON.parse(json);
+      tasks = snap.data().tasks;
       lastSavedJSON = json;
       nextId = tasks.reduce((m,t)=>Math.max(m,t.id),0)+1;
       renderTable();
       failCount = 0;
       setSyncStatus('synced');
     } catch (err) {
-      // IMPORTANT: a fetch error (network blip, CORS, etc.) is NOT the same
-      // as "no data yet" (that's a clean 404 above). Never overwrite shared
-      // storage with defaults on a thrown error — that would destroy
-      // real co-worker data.
       failCount++;
-      console.warn(`讀取共用資料失敗（第 ${failCount} 次）`, err);
+      console.warn(`讀取資料失敗（第 ${failCount} 次）`, err);
       if (!isPoll) {
         if (failCount <= 4) {
-          // Retry with backoff before giving up
           setTimeout(() => loadTasks(false), failCount * 1000);
         } else {
-          // Repeated failures: show sample data LOCALLY for display only.
-          // Do NOT call persistTasks() — that would overwrite shared data.
           if (!tasks.length) {
             tasks = DEFAULT_TASKS;
             nextId = tasks.reduce((m,t)=>Math.max(m,t.id),0)+1;
           }
           renderTable();
           setSyncStatus('error');
-          showToast('⚠ 無法連線共用資料，目前顯示暫存內容，請重新整理頁面');
+          showToast('⚠ 無法連線，目前顯示暫存內容');
         }
       } else {
-        // One-off network blips during polling shouldn't alarm the user.
-        if (failCount === 1) {
-          setTimeout(() => loadTasks(true), 2000);
-        } else if (failCount >= 3) {
-          setSyncStatus('error');
-        }
+        if (failCount === 1) setTimeout(() => loadTasks(true), 2000);
+        else if (failCount >= 3) setSyncStatus('error');
       }
     }
   }
@@ -869,20 +853,15 @@
     const json = JSON.stringify(tasks);
     lastSavedJSON = json;
     try {
-      const res = await fetchWithTimeout(KVDB_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain' },
-        body: json
-      });
-      if (!res.ok) throw new Error('HTTP ' + res.status);
+      await DOC_REF.set({ tasks: tasks });
       failCount = 0;
       setSyncStatus('synced');
       isSyncing = false;
     } catch (err) {
-      console.warn(`儲存共用資料失敗（第 ${retryCount+1} 次嘗試）`, err);
+      console.warn(`儲存失敗（第 ${retryCount+1} 次）`, err);
       if (retryCount < 2) {
         setTimeout(() => persistTasks(retryCount+1), 1500);
-        return; // keep isSyncing = true until the retry resolves
+        return;
       }
       isSyncing = false;
       setSyncStatus('error');
@@ -890,8 +869,24 @@
     }
   }
 
-  // Backwards-compatible alias
   async function saveTasks() { await persistTasks(); }
+
+  // 即時監聽 Firestore 變更，有人儲存時所有人自動更新
+  function startRealtimeSync() {
+    DOC_REF.onSnapshot(snap => {
+      if (isSyncing) return; // 自己正在寫入時忽略
+      if (!snap.exists) return;
+      const json = JSON.stringify(snap.data().tasks);
+      if (json === lastSavedJSON) return;
+      tasks = snap.data().tasks;
+      lastSavedJSON = json;
+      nextId = tasks.reduce((m,t)=>Math.max(m,t.id),0)+1;
+      renderTable();
+      setSyncStatus('synced');
+    }, err => {
+      console.warn('即時同步錯誤', err);
+    });
+  }
 
   // ── TODAY ──
   const now = new Date();
@@ -1420,8 +1415,10 @@
   }
 
   function startApp() {
-    loadTasks(false);
-    setInterval(() => loadTasks(true), 8000);
+    loadTasks(false).then(() => {
+      // 載入完成後啟動即時監聽，之後所有人的變更都會自動推送
+      startRealtimeSync();
+    });
   }
 
   // ── INIT ──
