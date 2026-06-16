@@ -593,7 +593,10 @@
     <span class="sync-status" id="syncStatus">🔄 同步中…</span>
     <button class="retry-btn" id="retryBtn" onclick="manualRetry()" style="display:none;">重新整理</button>
     <span class="today-label" id="todayLabel"></span>
-    <button class="btn-pdf" onclick="exportPDF()">⬇ 匯出 PDF</button>
+    <button class="btn-pdf" onclick="exportPDF()">⬇ PDF</button>
+    <button class="btn-pdf" onclick="exportJSON()" title="匯出所有工作資料為 JSON 檔案">⬇ 匯出</button>
+    <button class="btn-pdf" onclick="document.getElementById('importFile').click()" title="從 JSON 檔案匯入工作資料">⬆ 匯入</button>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(this)">
     <button class="btn-new" onclick="openModal()">＋ 新增工作</button>
   </div>
 </header>
@@ -744,7 +747,7 @@
     <p id="confirmText" style="font-size:0.88rem; color:var(--navy3); line-height:1.6; margin-bottom:1.5rem;"></p>
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeConfirm()">取消</button>
-      <button class="btn-save" style="background:var(--red)" onclick="confirmDelete()">確定刪除</button>
+      <button id="confirmDeleteBtn" class="btn-save" style="background:var(--red)" onclick="confirmDelete()">確定刪除</button>
     </div>
   </div>
 </div>
@@ -1170,7 +1173,65 @@
     window.print();
   }
 
-  // ── FILTER ──
+  // ── JSON 匯出 / 匯入 ──
+  function exportJSON() {
+    const json = JSON.stringify(tasks, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const dateStr = now.toISOString().slice(0,10);
+    a.href = url;
+    a.download = `progresstrack-backup-${dateStr}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast(`✓ 已匯出 ${tasks.length} 筆工作資料`);
+  }
+
+  let pendingImportData = null;
+
+  function importJSON(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const imported = JSON.parse(e.target.result);
+        if (!Array.isArray(imported)) throw new Error('格式不正確');
+        const valid = imported.every(t => t.id !== undefined && t.name !== undefined);
+        if (!valid) throw new Error('資料欄位不符合');
+
+        pendingImportData = imported;
+        document.getElementById('confirmText').textContent =
+          `準備匯入 ${imported.length} 筆工作資料，這將完全取代目前所有工作。確定繼續？`;
+        document.getElementById('confirmOverlay').classList.add('open');
+        // Redirect the confirm button to handle import instead of delete
+        document.getElementById('confirmDeleteBtn').textContent = '確定匯入';
+        document.getElementById('confirmDeleteBtn').onclick = doImport;
+      } catch (err) {
+        showToast(`⚠ 匯入失敗：${err.message}`);
+      }
+      input.value = '';
+    };
+    reader.readAsText(file, 'utf-8');
+  }
+
+  async function doImport() {
+    if (!pendingImportData) return;
+    const imported = pendingImportData;
+    pendingImportData = null;
+    // Reset the confirm button back to delete behaviour
+    document.getElementById('confirmDeleteBtn').textContent = '確定刪除';
+    document.getElementById('confirmDeleteBtn').onclick = confirmDelete;
+    closeConfirm();
+
+    tasks = imported;
+    nextId = tasks.reduce((m,t) => Math.max(m, t.id||0), 0) + 1;
+    renderTable();
+    showToast(`✓ 已匯入 ${tasks.length} 筆工作資料，同步中…`);
+    await persistTasks();
+  }
+
+
   function setFilter(f, btn) {
     currentFilter = f;
     document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
