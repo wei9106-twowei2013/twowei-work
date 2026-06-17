@@ -769,6 +769,9 @@
     <select class="form-select filter-select" id="clientFilter" onchange="renderTable()">
       <option value="">所有客戶</option>
     </select>
+    <select class="form-select filter-select" id="assigneeFilter" onchange="renderTable()">
+      <option value="">所有負責人</option>
+    </select>
   </div>
 
   <!-- TABLE -->
@@ -1332,24 +1335,33 @@
     return `${y}年${parseInt(m,10)}月`;
   }
 
-  // Build the 年月 / 客戶 filter dropdowns from current task data,
+  // Build the 年月 / 客戶 / 負責人 filter dropdowns from current task data,
   // preserving the user's current selection if still valid.
   function populateFilterOptions() {
-    const periodSel = document.getElementById('periodFilter');
-    const clientSel = document.getElementById('clientFilter');
-    const prevPeriod = periodSel.value;
-    const prevClient = clientSel.value;
+    const periodSel   = document.getElementById('periodFilter');
+    const clientSel   = document.getElementById('clientFilter');
+    const assigneeSel = document.getElementById('assigneeFilter');
+    const prevPeriod   = periodSel.value;
+    const prevClient   = clientSel.value;
+    const prevAssignee = assigneeSel.value;
 
-    const periods = [...new Set(tasks.map(t=>t.period).filter(Boolean))].sort().reverse();
-    const clients = [...new Set(tasks.map(t=>t.client).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'zh-Hant'));
+    const periods   = [...new Set(tasks.map(t=>t.period).filter(Boolean))].sort().reverse();
+    const clients   = [...new Set(tasks.map(t=>t.client).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'zh-Hant'));
+    // Flatten all assignee names (handles multi-person like "俊偉、昆毅")
+    const assignees = [...new Set(
+      tasks.flatMap(t => splitAssignees(t.assignee))
+    )].sort((a,b)=>a.localeCompare(b,'zh-Hant'));
 
     periodSel.innerHTML = '<option value="">所有年月</option>' +
       periods.map(p=>`<option value="${esc(p)}">${esc(formatPeriodLabel(p))}</option>`).join('');
     clientSel.innerHTML = '<option value="">所有客戶</option>' +
       clients.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');
+    assigneeSel.innerHTML = '<option value="">所有負責人</option>' +
+      assignees.map(a=>`<option value="${esc(a)}">${esc(a)}</option>`).join('');
 
-    if (periods.includes(prevPeriod)) periodSel.value = prevPeriod;
-    if (clients.includes(prevClient)) clientSel.value = prevClient;
+    if (periods.includes(prevPeriod))     periodSel.value   = prevPeriod;
+    if (clients.includes(prevClient))     clientSel.value   = prevClient;
+    if (assignees.includes(prevAssignee)) assigneeSel.value = prevAssignee;
 
     // Update the datalist used for client autocomplete in the form
     const datalist = document.getElementById('clientOptions');
@@ -1372,10 +1384,11 @@
   // (no status filter, search, or dropdown filters) so drag positions map
   // 1:1 to array indices.
   function canReorder() {
-    const periodFilter = document.getElementById('periodFilter').value;
-    const clientFilter = document.getElementById('clientFilter').value;
+    const periodFilter   = document.getElementById('periodFilter').value;
+    const clientFilter   = document.getElementById('clientFilter').value;
+    const assigneeFilter = document.getElementById('assigneeFilter').value;
     const searchTerm = document.getElementById('searchInput').value.trim();
-    return currentFilter === 'all' && !periodFilter && !clientFilter && !searchTerm;
+    return currentFilter === 'all' && !periodFilter && !clientFilter && !assigneeFilter && !searchTerm;
   }
 
   function getFilteredTasks() {
@@ -1383,12 +1396,14 @@
       ? tasks
       : tasks.filter(t => t.status === currentFilter);
 
-    const periodFilter = document.getElementById('periodFilter').value;
-    const clientFilter = document.getElementById('clientFilter').value;
+    const periodFilter   = document.getElementById('periodFilter').value;
+    const clientFilter   = document.getElementById('clientFilter').value;
+    const assigneeFilter = document.getElementById('assigneeFilter').value;
     const searchTerm = document.getElementById('searchInput').value.trim().toLowerCase();
 
-    if (periodFilter) filtered = filtered.filter(t => (t.period||'') === periodFilter);
-    if (clientFilter) filtered = filtered.filter(t => (t.client||'') === clientFilter);
+    if (periodFilter)   filtered = filtered.filter(t => (t.period||'') === periodFilter);
+    if (clientFilter)   filtered = filtered.filter(t => (t.client||'') === clientFilter);
+    if (assigneeFilter) filtered = filtered.filter(t => splitAssignees(t.assignee).includes(assigneeFilter));
     if (searchTerm) {
       filtered = filtered.filter(t =>
         (t.name||'').toLowerCase().includes(searchTerm) ||
