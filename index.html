@@ -244,6 +244,19 @@
   .task-name { font-weight: 600; font-size: 0.9rem; margin-bottom: 2px; }
   .task-project { font-size: 0.75rem; color: var(--muted); }
   .col-client, .col-period { white-space: nowrap; }
+  .seq-no {
+    display: inline-block;
+    font-family: 'Space Grotesk', monospace;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--muted);
+    background: #F1F5F9;
+    border-radius: 4px;
+    padding: 1px 5px;
+    margin-right: 7px;
+    letter-spacing: .03em;
+    flex-shrink: 0;
+  }
 
   /* DRAG TO REORDER */
   .col-drag { width: 28px; padding-left: 8px !important; padding-right: 0 !important; }
@@ -762,7 +775,7 @@
 
   <!-- SEARCH / ADVANCED FILTERS -->
   <div class="search-row">
-    <input class="form-input search-input" id="searchInput" type="text" placeholder="搜尋工作名稱、專案、負責人…" oninput="renderTable()">
+    <input class="form-input search-input" id="searchInput" type="text" placeholder="搜尋工作項目、專案、承辦人員…" oninput="renderTable()">
     <select class="form-select filter-select" id="periodFilter" onchange="renderTable()">
       <option value="">所有年月</option>
     </select>
@@ -770,7 +783,7 @@
       <option value="">所有客戶</option>
     </select>
     <select class="form-select filter-select" id="assigneeFilter" onchange="renderTable()">
-      <option value="">所有負責人</option>
+      <option value="">所有承辦人員</option>
     </select>
   </div>
 
@@ -780,13 +793,13 @@
       <thead>
         <tr>
           <th class="col-drag"></th>
-          <th>工作名稱</th>
+          <th>工作項目</th>
           <th class="col-project">專案</th>
           <th class="col-client">客戶</th>
           <th class="col-period">年月</th>
           <th>狀態</th>
           <th>進度</th>
-          <th class="col-assignee">負責人</th>
+          <th class="col-assignee">承辦人員</th>
           <th>預定完成日期</th>
           <th></th>
         </tr>
@@ -809,7 +822,7 @@
   <div class="modal">
     <div class="modal-title" id="modalTitle">新增工作</div>
     <div class="form-group">
-      <label class="form-label">工作名稱 *</label>
+      <label class="form-label">工作項目 *</label>
       <input class="form-input" id="fName" placeholder="例：完成 Q2 報告初稿">
     </div>
     <div class="form-group">
@@ -854,7 +867,7 @@
       </div>
     </div>
     <div class="form-group">
-      <label class="form-label">負責人</label>
+      <label class="form-label">承辦人員</label>
       <input class="form-input" id="fAssignee" placeholder="例：王小明、林小華">
       <div class="color-swatches" id="colorSwatches"></div>
     </div>
@@ -1041,7 +1054,7 @@
     return avatarColors[h % avatarColors.length];
   }
 
-  // Split a "負責人" field on common separators so multiple people can each
+  // Split a "承辦人員" field on common separators so multiple people can each
   // get their own avatar circle (e.g. "俊偉、昆毅" -> ["俊偉","昆毅"]).
   function splitAssignees(str) {
     return String(str||'')
@@ -1090,11 +1103,12 @@
       const pct = Math.min(100, Math.max(0, t.progress||0));
       const avatarsHtml = renderAvatars(t.assignee, t.assigneeColor);
       const draggable = reorderable ? 'true' : 'false';
+      const seqNo = String(tasks.findIndex(x=>x.id===t.id)+1).padStart(3,'0');
       return `
       <tr draggable="${draggable}" data-id="${t.id}" class="${reorderable ? 'row-draggable' : ''}">
         <td class="col-drag">${reorderable ? '<span class="drag-handle" title="拖曳排序">⠿</span>' : ''}</td>
         <td>
-          <div class="task-name">${esc(t.name)}</div>
+          <div class="task-name"><span class="seq-no">${seqNo}</span>${esc(t.name)}</div>
           <div class="task-project">${esc(t.desc||'')}</div>
         </td>
         <td class="col-project"><span style="font-size:.8rem;color:var(--navy3)">${esc(t.project||'—')}</span></td>
@@ -1146,12 +1160,13 @@
       const isOverdue = t.due && new Date(t.due) < now && t.status !== 'done';
       const pct = Math.min(100, Math.max(0, t.progress||0));
       const avatarsHtml = renderAvatars(t.assignee, t.assigneeColor);
+      const seqNo = String(tasks.findIndex(x=>x.id===t.id)+1).padStart(3,'0');
       return `
       <div class="task-card" data-id="${t.id}" ${reorderable ? 'data-draggable="true"' : ''}>
         <div class="card-top">
           ${reorderable ? `<span class="card-drag-handle" title="長按拖曳排序">⠿</span>` : ''}
           <div class="card-title-block">
-            <div class="card-name">${esc(t.name)}</div>
+            <div class="card-name"><span class="seq-no">${seqNo}</span>${esc(t.name)}</div>
             ${t.desc ? `<div class="card-desc">${esc(t.desc)}</div>` : ''}
           </div>
           <span class="badge ${sm.cls}" style="flex-shrink:0">${sm.label}</span>
@@ -1346,7 +1361,7 @@
     return `${y}年${parseInt(m,10)}月`;
   }
 
-  // Build the 年月 / 客戶 / 負責人 filter dropdowns from current task data,
+  // Build the 年月 / 客戶 / 承辦人員 filter dropdowns from current task data,
   // preserving the user's current selection if still valid.
   function populateFilterOptions() {
     const periodSel   = document.getElementById('periodFilter');
@@ -1367,7 +1382,7 @@
       periods.map(p=>`<option value="${esc(p)}">${esc(formatPeriodLabel(p))}</option>`).join('');
     clientSel.innerHTML = '<option value="">所有客戶</option>' +
       clients.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');
-    assigneeSel.innerHTML = '<option value="">所有負責人</option>' +
+    assigneeSel.innerHTML = '<option value="">所有承辦人員</option>' +
       assignees.map(a=>`<option value="${esc(a)}">${esc(a)}</option>`).join('');
 
     if (periods.includes(prevPeriod))     periodSel.value   = prevPeriod;
@@ -1437,8 +1452,10 @@
       const sm = statusMap[t.status] || statusMap.pending;
       const pct = Math.min(100, Math.max(0, t.progress||0));
       const dueStr = t.due ? formatDate(t.due) : '—';
+      const seqNo = String(tasks.findIndex(x=>x.id===t.id)+1).padStart(3,'0');
       return `
         <tr>
+          <td>${seqNo}</td>
           <td>${esc(t.name)}${t.desc ? `<br><span style="color:#888;font-size:0.7rem;">${esc(t.desc)}</span>` : ''}</td>
           <td>${esc(t.project||'—')}</td>
           <td>${esc(t.client||'—')}</td>
@@ -1456,8 +1473,8 @@
       <table>
         <thead>
           <tr>
-            <th>工作名稱</th><th>專案</th><th>客戶</th><th>年月</th>
-            <th>狀態</th><th>進度</th><th>負責人</th><th>預定完成日期</th>
+            <th>序號</th><th>工作項目</th><th>專案</th><th>客戶</th><th>年月</th>
+            <th>狀態</th><th>進度</th><th>承辦人員</th><th>預定完成日期</th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>
