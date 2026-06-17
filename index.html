@@ -244,17 +244,24 @@
   .task-name { font-weight: 600; font-size: 0.9rem; margin-bottom: 2px; }
   .task-project { font-size: 0.75rem; color: var(--muted); }
   .col-client, .col-period { white-space: nowrap; }
+  .task-name-cell {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
   .seq-no {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     font-family: 'Space Grotesk', monospace;
-    font-size: 0.7rem;
+    font-size: 0.68rem;
     font-weight: 700;
     color: var(--muted);
     background: #F1F5F9;
     border-radius: 4px;
-    padding: 1px 5px;
-    margin-right: 7px;
-    letter-spacing: .03em;
+    padding: 2px 6px;
+    letter-spacing: .05em;
+    white-space: nowrap;
     flex-shrink: 0;
   }
 
@@ -1108,8 +1115,13 @@
       <tr draggable="${draggable}" data-id="${t.id}" class="${reorderable ? 'row-draggable' : ''}">
         <td class="col-drag">${reorderable ? '<span class="drag-handle" title="拖曳排序">⠿</span>' : ''}</td>
         <td>
-          <div class="task-name"><span class="seq-no">${seqNo}</span>${esc(t.name)}</div>
-          <div class="task-project">${esc(t.desc||'')}</div>
+          <div class="task-name-cell">
+            <span class="seq-no">${seqNo}</span>
+            <div>
+              <div class="task-name">${esc(t.name)}</div>
+              <div class="task-project">${esc(t.desc||'')}</div>
+            </div>
+          </div>
         </td>
         <td class="col-project"><span style="font-size:.8rem;color:var(--navy3)">${esc(t.project||'—')}</span></td>
         <td class="col-client"><span style="font-size:.8rem;color:var(--navy3)">${esc(t.client||'—')}</span></td>
@@ -1166,8 +1178,13 @@
         <div class="card-top">
           ${reorderable ? `<span class="card-drag-handle" title="長按拖曳排序">⠿</span>` : ''}
           <div class="card-title-block">
-            <div class="card-name"><span class="seq-no">${seqNo}</span>${esc(t.name)}</div>
-            ${t.desc ? `<div class="card-desc">${esc(t.desc)}</div>` : ''}
+            <div class="task-name-cell">
+              <span class="seq-no">${seqNo}</span>
+              <div>
+                <div class="card-name">${esc(t.name)}</div>
+                ${t.desc ? `<div class="card-desc">${esc(t.desc)}</div>` : ''}
+              </div>
+            </div>
           </div>
           <span class="badge ${sm.cls}" style="flex-shrink:0">${sm.label}</span>
         </div>
