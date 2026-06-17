@@ -782,7 +782,7 @@
 
   <!-- SEARCH / ADVANCED FILTERS -->
   <div class="search-row">
-    <input class="form-input search-input" id="searchInput" type="text" placeholder="搜尋工作項目、專案、承辦人員…" oninput="renderTable()">
+    <input class="form-input search-input" id="searchInput" type="text" placeholder="搜尋工作項目、工作內容、承辦人員…" oninput="renderTable()">
     <select class="form-select filter-select" id="periodFilter" onchange="renderTable()">
       <option value="">所有年月</option>
     </select>
@@ -801,7 +801,7 @@
         <tr>
           <th class="col-drag"></th>
           <th>工作項目</th>
-          <th class="col-project">專案</th>
+          <th class="col-project">工作內容</th>
           <th class="col-client">客戶</th>
           <th class="col-period">年月</th>
           <th>狀態</th>
@@ -833,7 +833,7 @@
       <input class="form-input" id="fName" placeholder="例：完成 Q2 報告初稿">
     </div>
     <div class="form-group">
-      <label class="form-label">所屬專案</label>
+      <label class="form-label">工作內容</label>
       <input class="form-input" id="fProject" placeholder="例：行銷企劃 2025">
     </div>
     <div class="form-row">
@@ -1189,7 +1189,7 @@
           <span class="badge ${sm.cls}" style="flex-shrink:0">${sm.label}</span>
         </div>
         <div class="card-meta">
-          ${t.project ? `<div class="card-meta-item"><span class="card-meta-label">專案</span><span class="card-meta-value">${esc(t.project)}</span></div>` : ''}
+          ${t.project ? `<div class="card-meta-item"><span class="card-meta-label">工作內容</span><span class="card-meta-value">${esc(t.project)}</span></div>` : ''}
           ${t.client ? `<div class="card-meta-item"><span class="card-meta-label">客戶</span><span class="card-meta-value">${esc(t.client)}</span></div>` : ''}
           ${t.period ? `<div class="card-meta-item"><span class="card-meta-label">年月</span><span class="card-meta-value">${esc(t.period)}</span></div>` : ''}
           ${t.due ? `<div class="card-meta-item"><span class="card-meta-label">預定完成</span><span class="card-meta-value${isOverdue?' overdue':''}">${dueStr}</span></div>` : ''}
@@ -1490,7 +1490,7 @@
       <table>
         <thead>
           <tr>
-            <th>序號</th><th>工作項目</th><th>專案</th><th>客戶</th><th>年月</th>
+            <th>序號</th><th>工作項目</th><th>工作內容</th><th>客戶</th><th>年月</th>
             <th>狀態</th><th>進度</th><th>承辦人員</th><th>預定完成日期</th>
           </tr>
         </thead>
