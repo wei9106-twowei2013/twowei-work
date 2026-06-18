@@ -244,6 +244,16 @@
   .task-name { font-weight: 600; font-size: 0.9rem; margin-bottom: 2px; }
   .task-project { font-size: 0.75rem; color: var(--muted); }
   .col-client, .col-period { white-space: nowrap; }
+  .col-dates { white-space: nowrap; font-size: .8rem; }
+  .days-badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--navy3);
+  }
+  .days-badge.days-done {
+    color: var(--green);
+    font-weight: 700;
+  }
   .task-name-cell {
     display: flex;
     align-items: center;
@@ -808,7 +818,9 @@
           <th>狀態</th>
           <th>進度</th>
           <th class="col-assignee">承辦人員</th>
-          <th>預定完成日期</th>
+          <th class="col-dates">開始日期</th>
+          <th class="col-dates">預定完成日期</th>
+          <th class="col-dates">共用天數</th>
           <th></th>
         </tr>
       </thead>
@@ -852,7 +864,7 @@
       <label class="form-label">工作說明</label>
       <textarea class="form-textarea" id="fDesc" placeholder="詳細說明工作內容、目標或備註…"></textarea>
     </div>
-    <div class="form-row">
+    <div class="form-row" style="grid-template-columns:1fr 1fr 1fr;">
       <div class="form-group">
         <label class="form-label">狀態</label>
         <select class="form-select" id="fStatus">
@@ -861,6 +873,10 @@
           <option value="done">已完成</option>
           <option value="blocked">停等中</option>
         </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">開始日期</label>
+        <input class="form-input" id="fStartDate" type="date">
       </div>
       <div class="form-group">
         <label class="form-label">預定完成日期</label>
@@ -1139,7 +1155,9 @@
         <td class="col-assignee">
           ${avatarsHtml}
         </td>
-        <td><span class="due-date${isOverdue?' overdue':''}">${dueStr}</span></td>
+        <td class="col-dates"><span style="font-size:.8rem;color:var(--navy3)">${t.startDate ? formatDate(t.startDate) : '—'}</span></td>
+        <td class="col-dates"><span class="due-date${isOverdue?' overdue':''}">${dueStr}</span></td>
+        <td class="col-dates"><span class="days-badge${t.status==='done'?' days-done':''}">${calcDays(t)}</span></td>
         <td>
           <div class="row-actions">
             <button class="icon-btn drive-btn" onclick="openDrive()" title="附加說明（Google Drive）">📁</button>
@@ -1194,7 +1212,9 @@
           ${t.project ? `<div class="card-meta-item"><span class="card-meta-label">工作內容</span><span class="card-meta-value">${esc(t.project)}</span></div>` : ''}
           ${t.client ? `<div class="card-meta-item"><span class="card-meta-label">客戶</span><span class="card-meta-value">${esc(t.client)}</span></div>` : ''}
           ${t.period ? `<div class="card-meta-item"><span class="card-meta-label">年月</span><span class="card-meta-value">${esc(t.period)}</span></div>` : ''}
+          ${t.startDate ? `<div class="card-meta-item"><span class="card-meta-label">開始日期</span><span class="card-meta-value">${formatDate(t.startDate)}</span></div>` : ''}
           ${t.due ? `<div class="card-meta-item"><span class="card-meta-label">預定完成</span><span class="card-meta-value${isOverdue?' overdue':''}">${dueStr}</span></div>` : ''}
+          <div class="card-meta-item"><span class="card-meta-label">共用天數</span><span class="card-meta-value days-badge${t.status==='done'?' days-done':''}">${calcDays(t)}</span></div>
         </div>
         <div class="card-progress-row">
           <div class="card-progress-bar">
@@ -1375,6 +1395,26 @@
     return d.toLocaleDateString('zh-TW', {month:'numeric',day:'numeric'});
   }
 
+  // Calculate days between start and end (or today if not done).
+  // Returns a display string: e.g. "12 天" when done, "進行 8 天" when in progress.
+  function calcDays(t) {
+    if (!t.startDate) return '—';
+    const start = new Date(t.startDate + 'T00:00:00');
+    let end;
+    if (t.status === 'done' && t.doneDate) {
+      end = new Date(t.doneDate + 'T00:00:00');
+    } else if (t.status === 'done' && t.due) {
+      end = new Date(t.due + 'T00:00:00');
+    } else {
+      end = new Date();
+      end.setHours(0,0,0,0);
+    }
+    const days = Math.round((end - start) / (1000*60*60*24));
+    if (days < 0) return '—';
+    if (t.status === 'done') return `${days} 天`;
+    return `進行 ${days} 天`;
+  }
+
   // Format "2026-06" -> "2026年6月" for dropdown labels
   function formatPeriodLabel(p) {
     const [y, m] = p.split('-');
@@ -1483,7 +1523,9 @@
           <td>${esc(sm.label)}</td>
           <td>${pct}%</td>
           <td>${esc(t.assignee||'—')}</td>
+          <td>${t.startDate ? formatDate(t.startDate) : '—'}</td>
           <td>${dueStr}</td>
+          <td>${calcDays(t)}</td>
         </tr>`;
     }).join('');
 
@@ -1494,7 +1536,7 @@
         <thead>
           <tr>
             <th>序號</th><th>工作項目</th><th>工作內容</th><th>客戶</th><th>年月</th>
-            <th>狀態</th><th>進度</th><th>承辦人員</th><th>預定完成日期</th>
+            <th>狀態</th><th>進度</th><th>承辦人員</th><th>開始日期</th><th>預定完成日期</th><th>共用天數</th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>
@@ -1597,6 +1639,7 @@
     document.getElementById('fPeriod').value = currentMonth();
     document.getElementById('fDesc').value = '';
     document.getElementById('fStatus').value = 'pending';
+    document.getElementById('fStartDate').value = '';
     document.getElementById('fDue').value = '';
     document.getElementById('fProgress').value = 0;
     document.getElementById('fProgressVal').textContent = '0%';
@@ -1617,6 +1660,7 @@
     document.getElementById('fPeriod').value = t.period||'';
     document.getElementById('fDesc').value = t.desc||'';
     document.getElementById('fStatus').value = t.status;
+    document.getElementById('fStartDate').value = t.startDate||'';
     document.getElementById('fDue').value = t.due||'';
     document.getElementById('fProgress').value = t.progress||0;
     document.getElementById('fProgressVal').textContent = (t.progress||0)+'%';
@@ -1649,6 +1693,7 @@
       period: document.getElementById('fPeriod').value,
       desc: document.getElementById('fDesc').value.trim(),
       status: document.getElementById('fStatus').value,
+      startDate: document.getElementById('fStartDate').value,
       due: document.getElementById('fDue').value,
       progress: parseInt(document.getElementById('fProgress').value)||0,
       assignee: document.getElementById('fAssignee').value.trim(),
@@ -1705,14 +1750,19 @@
   async function toggleComplete(id) {
     const t = tasks.find(x=>x.id===id);
     if (!t) return;
+    const todayStr = new Date().toISOString().slice(0,10);
     if (t.status === 'done') {
       t.status = 'inprog';
       if (t.progress === 100) t.progress = t.prevProgress ?? 80;
+      t.doneDate = null;
       showToast('已取消完成');
     } else {
       t.prevProgress = t.progress;
       t.status = 'done';
       t.progress = 100;
+      t.doneDate = todayStr;
+      // Auto-fill start date if not set
+      if (!t.startDate) t.startDate = todayStr;
       showToast('工作已標記為完成');
     }
     t.updatedAt = Date.now();
