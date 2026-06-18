@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>工作進度回報系統</title>
+<title>圖威工作進度系統</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <!-- Firebase SDK (compat version — works in plain HTML without bundler) -->
@@ -609,7 +609,7 @@
     #emptyState { display: none; }
 
     /* Card list */
-    .card-list { display: flex; flex-direction: column; gap: 10px; }
+    .card-list { display: flex; flex-direction: column; gap: 20px; }
     .task-card {
       background: white;
       border: 1px solid var(--border);
@@ -731,7 +731,7 @@
 <!-- LOGIN OVERLAY -->
 <div class="login-overlay" id="loginOverlay">
   <div class="login-card">
-    <div class="login-logo">⬡ <span>Progress</span>Track</div>
+    <div class="login-logo">⬡ <span>圖威</span>工作進度系統</div>
     <p class="login-sub">請輸入團隊密碼以繼續</p>
     <input type="password" class="login-input" id="loginInput" placeholder="密碼" autocomplete="off">
     <button class="login-btn" onclick="checkPassword()">登入</button>
@@ -740,7 +740,7 @@
 </div>
 
 <header>
-  <div class="logo">⬡ <span>Progress</span>Track</div>
+  <div class="logo">⬡ <span>圖威</span>工作進度系統</div>
   <div class="header-right">
     <span class="sync-status" id="syncStatus">🔄 同步中…</span>
     <button class="retry-btn" id="retryBtn" onclick="manualRetry()" style="display:none;">重新整理</button>
@@ -1532,7 +1532,7 @@
     }).join('');
 
     printArea.innerHTML = `
-      <h1>工作進度回報系統</h1>
+      <h1>圖威工作進度系統</h1>
       <div class="print-meta">匯出日期：${dateStr}　共 ${filtered.length} 筆工作</div>
       <table>
         <thead>
