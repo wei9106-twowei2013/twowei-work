@@ -387,6 +387,7 @@
   .icon-btn.danger:hover { background: var(--red); border-color: var(--red); }
   .complete-btn:hover { background: var(--green); border-color: var(--green); color: white; }
   .complete-btn.active { background: var(--green); border-color: var(--green); color: white; }
+  .drive-btn:hover { background: #1a73e8; border-color: #1a73e8; color: white; }
 
   /* ── LOGIN OVERLAY ── */
   .login-overlay {
@@ -1141,6 +1142,7 @@
         <td><span class="due-date${isOverdue?' overdue':''}">${dueStr}</span></td>
         <td>
           <div class="row-actions">
+            <button class="icon-btn drive-btn" onclick="openDrive()" title="附加說明（Google Drive）">📁</button>
             <button class="icon-btn complete-btn${t.status==='done' ? ' active' : ''}" onclick="toggleComplete(${t.id})" title="${t.status==='done' ? '取消完成' : '標記為已完成'}">✓</button>
             <button class="icon-btn" onclick="openEdit(${t.id})" title="編輯">✏️</button>
             <button class="icon-btn danger" onclick="deleteTask(${t.id})" title="刪除">🗑️</button>
@@ -1203,6 +1205,7 @@
         <div class="card-footer">
           <div class="card-assignee">${avatarsHtml}</div>
           <div class="card-actions">
+            <button class="icon-btn drive-btn" onclick="openDrive()" title="附加說明（Google Drive）">📁</button>
             <button class="icon-btn complete-btn${t.status==='done' ? ' active' : ''}" onclick="toggleComplete(${t.id})" title="${t.status==='done' ? '取消完成' : '標記完成'}">✓</button>
             <button class="icon-btn" onclick="openEdit(${t.id})" title="編輯">✏️</button>
             <button class="icon-btn danger" onclick="deleteTask(${t.id})" title="刪除">🗑️</button>
@@ -1688,6 +1691,13 @@
     renderTable();
     showToast('工作已刪除');
     await persistTasks();
+  }
+
+  // ── GOOGLE DRIVE ──
+  const DRIVE_URL = 'https://drive.google.com/drive/folders/1Lt5jN0w9MqSrm7-StUD9SC7Ym-ikGKCj?usp=sharing';
+
+  function openDrive() {
+    window.open(DRIVE_URL, '_blank');
   }
 
   // Quick toggle: mark as done (sets progress to 100%), or revert back to
