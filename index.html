@@ -216,9 +216,10 @@
     background: white;
     border: 1px solid var(--border);
     border-radius: 14px;
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: visible;
   }
-  .task-table table { width: 100%; border-collapse: collapse; }
+  .task-table table { width: 100%; border-collapse: collapse; min-width: 1000px; }
   .task-table thead tr {
     background: var(--navy);
     color: white;
@@ -382,7 +383,17 @@
 
   /* ROW ACTIONS */
   .row-actions { display: flex; gap: 6px; opacity: 0.45; transition: opacity 0.15s; }
+  tr:hover .task-table td:last-child { background: #F1F5F9; }
   tr:hover .row-actions, .row-actions:focus-within { opacity: 1; }
+  /* Sticky action column — always visible even when table scrolls horizontally */
+  .task-table td:last-child,
+  .task-table th:last-child {
+    position: sticky;
+    right: 0;
+    background: white;
+    box-shadow: -2px 0 6px rgba(0,0,0,0.04);
+  }
+  .task-table thead th:last-child { background: var(--navy); }
   .icon-btn {
     width: 28px; height: 28px;
     border: 1px solid var(--border);
@@ -743,9 +754,9 @@
     <span class="sync-status" id="syncStatus">🔄 同步中…</span>
     <button class="retry-btn" id="retryBtn" onclick="manualRetry()" style="display:none;">重新整理</button>
     <span class="today-label" id="todayLabel"></span>
-    <button class="btn-pdf" onclick="exportPDF()">⬇ PDF</button>
-    <button class="btn-pdf" onclick="exportJSON()" title="匯出所有工作資料為 JSON 檔案">⬇ 匯出</button>
-    <button class="btn-pdf" onclick="document.getElementById('importFile').click()" title="從 JSON 檔案匯入工作資料">⬆ 匯入</button>
+    <button class="btn-pdf" onclick="exportPDF()">▼ PDF</button>
+    <button class="btn-pdf" onclick="exportJSON()" title="匯出所有工作資料為 JSON 檔案">▼ 匯出</button>
+    <button class="btn-pdf" onclick="document.getElementById('importFile').click()" title="從 JSON 檔案匯入工作資料">▲ 匯入</button>
     <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(this)">
     <button class="btn-new" onclick="openModal()">＋ 新增工作</button>
   </div>
@@ -820,7 +831,7 @@
           <th class="col-assignee">承辦人員</th>
           <th class="col-dates">開始日期</th>
           <th class="col-dates">預定完成日期</th>
-          <th class="col-dates">共用天數</th>
+          <th class="col-dates">天數統計</th>
           <th></th>
         </tr>
       </thead>
@@ -1214,7 +1225,7 @@
           ${t.period ? `<div class="card-meta-item"><span class="card-meta-label">年月</span><span class="card-meta-value">${esc(t.period)}</span></div>` : ''}
           ${t.startDate ? `<div class="card-meta-item"><span class="card-meta-label">開始日期</span><span class="card-meta-value">${formatDate(t.startDate)}</span></div>` : ''}
           ${t.due ? `<div class="card-meta-item"><span class="card-meta-label">預定完成</span><span class="card-meta-value${isOverdue?' overdue':''}">${dueStr}</span></div>` : ''}
-          <div class="card-meta-item"><span class="card-meta-label">共用天數</span><span class="card-meta-value days-badge${t.status==='done'?' days-done':''}">${calcDays(t)}</span></div>
+          <div class="card-meta-item"><span class="card-meta-label">天數統計</span><span class="card-meta-value days-badge${t.status==='done'?' days-done':''}">${calcDays(t)}</span></div>
         </div>
         <div class="card-progress-row">
           <div class="card-progress-bar">
@@ -1536,7 +1547,7 @@
         <thead>
           <tr>
             <th>序號</th><th>工作項目</th><th>工作內容</th><th>客戶</th><th>年月</th>
-            <th>狀態</th><th>進度</th><th>承辦人員</th><th>開始日期</th><th>預定完成日期</th><th>共用天數</th>
+            <th>狀態</th><th>進度</th><th>承辦人員</th><th>開始日期</th><th>預定完成日期</th><th>天數統計</th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>
