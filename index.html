@@ -383,17 +383,16 @@
 
   /* ROW ACTIONS */
   .row-actions { display: flex; gap: 6px; opacity: 0.45; transition: opacity 0.15s; }
-  tr:hover .task-table td:last-child { background: #F1F5F9; }
   tr:hover .row-actions, .row-actions:focus-within { opacity: 1; }
   /* Sticky action column — always visible even when table scrolls horizontally */
-  .task-table td:last-child,
-  .task-table th:last-child {
+  .task-table .col-actions {
     position: sticky;
     right: 0;
     background: white;
     box-shadow: -2px 0 6px rgba(0,0,0,0.04);
   }
-  .task-table thead th:last-child { background: var(--navy); }
+  .task-table thead .col-actions { background: var(--navy); }
+  tr:hover .col-actions { background: #F1F5F9; }
   .icon-btn {
     width: 28px; height: 28px;
     border: 1px solid var(--border);
@@ -832,7 +831,7 @@
           <th class="col-dates">開始日期</th>
           <th class="col-dates">預定完成日期</th>
           <th class="col-dates">天數統計</th>
-          <th></th>
+          <th class="col-actions"></th>
         </tr>
       </thead>
       <tbody id="taskBody"></tbody>
@@ -1169,7 +1168,7 @@
         <td class="col-dates"><span style="font-size:.8rem;color:var(--navy3)">${t.startDate ? formatDate(t.startDate) : '—'}</span></td>
         <td class="col-dates"><span class="due-date${isOverdue?' overdue':''}">${dueStr}</span></td>
         <td class="col-dates"><span class="days-badge${t.status==='done'?' days-done':''}">${calcDays(t)}</span></td>
-        <td>
+        <td class="col-actions">
           <div class="row-actions">
             <button class="icon-btn drive-btn" onclick="openDrive()" title="附加說明（Google Drive）">📁</button>
             <button class="icon-btn complete-btn${t.status==='done' ? ' active' : ''}" onclick="toggleComplete(${t.id})" title="${t.status==='done' ? '取消完成' : '標記為已完成'}">✓</button>
