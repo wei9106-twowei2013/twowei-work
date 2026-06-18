@@ -747,9 +747,9 @@
     <span class="sync-status" id="syncStatus">🔄 同步中…</span>
     <button class="retry-btn" id="retryBtn" onclick="manualRetry()" style="display:none;">重新整理</button>
     <span class="today-label" id="todayLabel"></span>
-    <button class="btn-pdf" onclick="exportPDF()">▼ PDF</button>
-    <button class="btn-pdf" onclick="exportJSON()" title="匯出所有工作資料為 JSON 檔案">▼ 匯出</button>
-    <button class="btn-pdf" onclick="document.getElementById('importFile').click()" title="從 JSON 檔案匯入工作資料">▲ 匯入</button>
+    <button class="btn-pdf" onclick="exportPDF()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> PDF</button>
+    <button class="btn-pdf" onclick="exportJSON()" title="匯出所有工作資料為 JSON 檔案"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> 匯出</button>
+    <button class="btn-pdf" onclick="document.getElementById('importFile').click()" title="從 JSON 檔案匯入工作資料"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10" transform="rotate(180 12 12)"/><line x1="12" y1="9" x2="12" y2="21"/></svg> 匯入</button>
     <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(this)">
     <button class="btn-new" onclick="openModal()">＋ 新增工作</button>
   </div>
