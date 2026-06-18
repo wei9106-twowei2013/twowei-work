@@ -120,9 +120,9 @@
 
   /* ── LAYOUT ── */
   .main-wrap {
-    max-width: 1200px;
+    max-width: 1600px;
     margin: 0 auto;
-    padding: 2rem 1.5rem;
+    padding: 2rem 1rem;
   }
 
   /* ── STATS ROW ── */
@@ -219,21 +219,14 @@
     overflow-x: auto;
     overflow-y: visible;
   }
-  .task-table table { width: 100%; border-collapse: collapse; min-width: 1000px; }
+  .task-table table { width: 100%; border-collapse: collapse; min-width: 1200px; }
   .task-table thead tr {
     background: var(--navy);
     color: white;
   }
-  .task-table th {
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: .05em;
-    text-transform: uppercase;
-    padding: 12px 16px;
-    text-align: left;
-    white-space: nowrap;
-  }
+  .task-table th { font-family: 'Space Grotesk', sans-serif; font-size: 0.75rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; padding: 12px 16px; text-align: left; white-space: nowrap; }
+  .task-table th:nth-child(2) { min-width: 180px; } /* 工作項目 */
+  .col-dates { white-space: nowrap; font-size: .8rem; min-width: 90px; }
   .task-table tbody tr {
     border-bottom: 1px solid var(--border);
     transition: background 0.12s;
@@ -245,7 +238,6 @@
   .task-name { font-weight: 600; font-size: 0.9rem; margin-bottom: 2px; }
   .task-project { font-size: 0.75rem; color: var(--muted); }
   .col-client, .col-period { white-space: nowrap; }
-  .col-dates { white-space: nowrap; font-size: .8rem; }
   .days-badge {
     font-size: 0.75rem;
     font-weight: 600;
