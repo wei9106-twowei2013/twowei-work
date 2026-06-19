@@ -1676,9 +1676,11 @@
     document.getElementById('modalOverlay').classList.remove('open');
   }
 
-  document.getElementById('modalOverlay').addEventListener('click', function(e) {
-    if (e.target === this) closeModal();
-  });
+  // NOTE: intentionally no click-outside-to-close and no Escape-to-close
+  // handlers here. Users often misclick outside the modal, or press Esc
+  // while using an IME to confirm/cancel character selection during typing —
+  // either of which would otherwise unexpectedly close the form and lose
+  // unsaved input. Closing is only available via the explicit 取消/X controls.
 
   document.getElementById('confirmOverlay').addEventListener('click', function(e) {
     if (e.target === this) closeConfirm();
