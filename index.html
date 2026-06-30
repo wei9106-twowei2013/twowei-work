@@ -1862,7 +1862,7 @@
     const input = document.getElementById('loginInput');
     const error = document.getElementById('loginError');
     if (input.value === TEAM_PASSWORD) {
-      sessionStorage.setItem(AUTH_KEY, '1');
+      localStorage.setItem(AUTH_KEY, '1');
       document.getElementById('loginOverlay').classList.add('hidden');
       startApp();
     } else {
@@ -1935,7 +1935,7 @@
   }
 
   // ── INIT ──
-  if (sessionStorage.getItem(AUTH_KEY) === '1') {
+  if (localStorage.getItem(AUTH_KEY) === '1') {
     document.getElementById('loginOverlay').classList.add('hidden');
     startApp();
   } else {
@@ -1944,7 +1944,7 @@
 
   // Refresh immediately when the tab regains focus
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && sessionStorage.getItem(AUTH_KEY) === '1') loadTasks(true);
+    if (!document.hidden && localStorage.getItem(AUTH_KEY) === '1') loadTasks(true);
   });
 
 </script>
