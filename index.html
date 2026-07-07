@@ -9,6 +9,8 @@
 <!-- Firebase SDK (compat version — works in plain HTML without bundler) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<!-- EmailJS SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -1726,6 +1728,7 @@
     renderTable();
     closeModal();
     await persistTasks();
+    sendProgressEmail(task); // 非同步寄信，不阻擋 UI
   }
 
   let pendingDeleteId = null;
@@ -1753,7 +1756,35 @@
     await persistTasks();
   }
 
-  // ── GOOGLE DRIVE ──
+  // ── EMAILJS 自動通知 ──
+  const EMAILJS_SERVICE_ID  = 'service_8n3qbur';
+  const EMAILJS_TEMPLATE_ID = 'template_vp8mjwn';
+  const EMAILJS_PUBLIC_KEY  = 'CCB54XLTVbtUFK3cR';
+  emailjs.init(EMAILJS_PUBLIC_KEY);
+
+  async function sendProgressEmail(t) {
+    const sm = statusMap[t.status] || statusMap.pending;
+    const pct = Math.min(100, Math.max(0, t.progress||0));
+    try {
+      await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+        task_name:     t.name || '—',
+        task_project:  t.project || '—',
+        task_client:   t.client || '—',
+        task_assignee: t.assignee || '—',
+        task_status:   sm.label,
+        task_progress: String(pct),
+        task_due:      t.due ? formatDate(t.due) : '—',
+        updated_at:    new Date().toLocaleString('zh-TW'),
+        task_link:     buildTaskLink(t.id),
+      });
+      console.log('📧 進度通知信已寄出：', t.name);
+    } catch (err) {
+      console.warn('📧 寄信失敗：', err);
+      // 不顯示 toast 給使用者，避免干擾操作
+    }
+  }
+
+
   const DRIVE_URL = 'https://drive.google.com/drive/folders/1Lt5jN0w9MqSrm7-StUD9SC7Ym-ikGKCj?usp=sharing';
 
   function openDrive() {
@@ -1841,6 +1872,7 @@
     t.updatedAt = Date.now();
     renderTable();
     await persistTasks();
+    sendProgressEmail(t); // 非同步寄信，不阻擋 UI
   }
 
   // ── TOAST ──
