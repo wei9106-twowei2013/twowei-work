@@ -762,7 +762,7 @@
     <span class="today-label" id="todayLabel"></span>
     <button class="btn-pdf" onclick="exportPDF()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg> PDF</button>
     <button class="btn-pdf" onclick="exportJSON()" title="匯出所有工作資料為 JSON 檔案"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg> 匯出</button>
-    <button class="btn-pdf" onclick="document.getElementById('importFile').click()" title="從 JSON 檔案匯入工作資料"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 15 12 9 18 15"/></svg> 匯入</button>
+    <button class="btn-pdf" id="importBtn" onclick="document.getElementById('importFile').click()" title="從 JSON 檔案匯入工作資料"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 15 12 9 18 15"/></svg> 匯入</button>
     <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(this)">
     <button class="btn-new" onclick="openModal()">＋ 新增工作</button>
     <button class="btn-pdf" onclick="logout()" title="登出"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> 登出</button>
@@ -1405,10 +1405,11 @@
   }
 
   function updateStats() {
-    document.getElementById('statTotal').textContent   = tasks.length;
-    document.getElementById('statDone').textContent    = tasks.filter(t=>t.status==='done').length;
-    document.getElementById('statInprog').textContent  = tasks.filter(t=>t.status==='inprog').length;
-    document.getElementById('statBlocked').textContent = tasks.filter(t=>t.status==='blocked').length;
+    const vt = visibleTasks();
+    document.getElementById('statTotal').textContent   = vt.length;
+    document.getElementById('statDone').textContent    = vt.filter(t=>t.status==='done').length;
+    document.getElementById('statInprog').textContent  = vt.filter(t=>t.status==='inprog').length;
+    document.getElementById('statBlocked').textContent = vt.filter(t=>t.status==='blocked').length;
   }
 
   function formatDate(s) {
@@ -1452,11 +1453,12 @@
     const prevClient   = clientSel.value;
     const prevAssignee = assigneeSel.value;
 
-    const periods   = [...new Set(tasks.map(t=>t.period).filter(Boolean))].sort().reverse();
-    const clients   = [...new Set(tasks.map(t=>t.client).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'zh-Hant'));
+    const vt = visibleTasks();
+    const periods   = [...new Set(vt.map(t=>t.period).filter(Boolean))].sort().reverse();
+    const clients   = [...new Set(vt.map(t=>t.client).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'zh-Hant'));
     // Flatten all assignee names (handles multi-person like "俊偉、昆毅")
     const assignees = [...new Set(
-      tasks.flatMap(t => splitAssignees(t.assignee))
+      vt.flatMap(t => splitAssignees(t.assignee))
     )].sort((a,b)=>a.localeCompare(b,'zh-Hant'));
 
     periodSel.innerHTML = '<option value="">所有年月</option>' +
@@ -1491,6 +1493,7 @@
   // (no status filter, search, or dropdown filters) so drag positions map
   // 1:1 to array indices.
   function canReorder() {
+    if (currentRole === 'outsource') return false;
     const periodFilter   = document.getElementById('periodFilter').value;
     const clientFilter   = document.getElementById('clientFilter').value;
     const assigneeFilter = document.getElementById('assigneeFilter').value;
@@ -1498,10 +1501,19 @@
     return currentFilter === 'all' && !periodFilter && !clientFilter && !assigneeFilter && !searchTerm;
   }
 
+  // 外包帳號（currentRole === 'outsource'）只看得到自己新增的工作；
+  // 內部團隊帳號一律看得到全部工作。所有畫面顯示、統計、篩選選單、
+  // 匯出都要透過這層，避免外包帳號看到內部資料。
+  function visibleTasks() {
+    return currentRole === 'outsource'
+      ? tasks.filter(t => t.createdByRole === 'outsource')
+      : tasks;
+  }
+
   function getFilteredTasks() {
     let filtered = currentFilter === 'all'
-      ? tasks
-      : tasks.filter(t => t.status === currentFilter);
+      ? visibleTasks()
+      : visibleTasks().filter(t => t.status === currentFilter);
 
     const periodFilter   = document.getElementById('periodFilter').value;
     const clientFilter   = document.getElementById('clientFilter').value;
@@ -1569,7 +1581,8 @@
 
   // ── JSON 匯出 / 匯入 ──
   function exportJSON() {
-    const json = JSON.stringify(tasks, null, 2);
+    const vt = visibleTasks();
+    const json = JSON.stringify(vt, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -1578,12 +1591,17 @@
     a.download = `progresstrack-backup-${dateStr}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    showToast(`✓ 已匯出 ${tasks.length} 筆工作資料`);
+    showToast(`✓ 已匯出 ${vt.length} 筆工作資料`);
   }
 
   let pendingImportData = null;
 
   function importJSON(input) {
+    if (currentRole === 'outsource') {
+      showToast('⚠ 外包帳號無法使用匯入功能');
+      input.value = '';
+      return;
+    }
     const file = input.files[0];
     if (!file) return;
     const reader = new FileReader();
@@ -1947,6 +1965,7 @@
   }
 
   function startApp() {
+    document.getElementById('importBtn').style.display = currentRole === 'outsource' ? 'none' : '';
     loadTasks(false).then(() => {
       // 載入完成後啟動即時監聽，之後所有人的變更都會自動推送
       startRealtimeSync();
@@ -1965,7 +1984,7 @@
   function scrollToSharedTask() {
     const id = getSharedTaskId();
     if (!id) return;
-    const t = tasks.find(x => x.id === id);
+    const t = visibleTasks().find(x => x.id === id);
     if (!t) {
       showToast('⚠ 找不到該筆工作，可能已被刪除');
       return;
