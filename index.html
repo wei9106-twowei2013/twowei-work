@@ -131,7 +131,7 @@
   /* ── STATS ROW ── */
   .stats-row {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 1rem;
     margin-bottom: 2rem;
   }
@@ -790,15 +790,20 @@
       <div class="stat-value cyan" id="statTotal">0</div>
       <div class="stat-sub">本期進行中</div>
     </button>
-    <button type="button" class="stat-card clickable" data-filter="done" onclick="setFilter('done')">
-      <div class="stat-label">已完成</div>
-      <div class="stat-value green" id="statDone">0</div>
-      <div class="stat-sub">工作完成</div>
-    </button>
     <button type="button" class="stat-card clickable" data-filter="inprog" onclick="setFilter('inprog')">
       <div class="stat-label">進行中</div>
       <div class="stat-value cyan" id="statInprog">0</div>
       <div class="stat-sub">積極處理中</div>
+    </button>
+    <button type="button" class="stat-card clickable" data-filter="pending" onclick="setFilter('pending')">
+      <div class="stat-label">待處理</div>
+      <div class="stat-value amber" id="statPending">0</div>
+      <div class="stat-sub">尚未開始</div>
+    </button>
+    <button type="button" class="stat-card clickable" data-filter="done" onclick="setFilter('done')">
+      <div class="stat-label">已完成</div>
+      <div class="stat-value green" id="statDone">0</div>
+      <div class="stat-sub">工作完成</div>
     </button>
     <button type="button" class="stat-card clickable" data-filter="blocked" onclick="setFilter('blocked')">
       <div class="stat-label">停等中</div>
@@ -1420,6 +1425,7 @@
   function updateStats() {
     const vt = visibleTasks();
     document.getElementById('statTotal').textContent   = vt.length;
+    document.getElementById('statPending').textContent = vt.filter(t=>t.status==='pending').length;
     document.getElementById('statDone').textContent    = vt.filter(t=>t.status==='done').length;
     document.getElementById('statInprog').textContent  = vt.filter(t=>t.status==='inprog').length;
     document.getElementById('statBlocked').textContent = vt.filter(t=>t.status==='blocked').length;
