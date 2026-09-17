@@ -801,7 +801,7 @@
     <div class="toolbar-title">工作清單</div>
     <div class="reorder-hint" id="reorderHint">💡 在「全部」檢視下，可拖曳 ⠿ 調整工作順序</div>
     <div class="filter-group">
-      <button class="filter-btn active" onclick="setFilter('all', this)">全部</button>
+      <button class="filter-btn" onclick="setFilter('all', this)">全部</button>
       <button class="filter-btn" onclick="setFilter('inprog', this)">進行中</button>
       <button class="filter-btn" onclick="setFilter('pending', this)">待處理</button>
       <button class="filter-btn" onclick="setFilter('done', this)">已完成</button>
@@ -951,7 +951,9 @@
 
   let tasks = [];
   let editId = null;
-  let currentFilter = 'all';
+  // 一進入首頁預設只顯示「進行中」與「停等中」，不是全部工作。
+  // 使用者要看全部工作時，自行點擊「全部」篩選鈕。
+  let currentFilter = 'default';
   let nextId = 1;
   let isSyncing = false;
   let lastSavedJSON = '';
@@ -1513,7 +1515,9 @@
   function getFilteredTasks() {
     let filtered = currentFilter === 'all'
       ? visibleTasks()
-      : visibleTasks().filter(t => t.status === currentFilter);
+      : currentFilter === 'default'
+        ? visibleTasks().filter(t => t.status === 'inprog' || t.status === 'blocked')
+        : visibleTasks().filter(t => t.status === currentFilter);
 
     const periodFilter   = document.getElementById('periodFilter').value;
     const clientFilter   = document.getElementById('clientFilter').value;
