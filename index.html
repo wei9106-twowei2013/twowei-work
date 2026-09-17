@@ -162,6 +162,17 @@
   .stat-value.amber  { color: var(--amber); }
   .stat-value.red    { color: var(--red); }
   .stat-sub { font-size: 0.75rem; color: var(--muted); }
+  .stat-card.clickable {
+    cursor: pointer;
+    text-align: left;
+    font: inherit;
+    appearance: none;
+    -webkit-appearance: none;
+    margin: 0;
+    transition: border-color .15s, box-shadow .15s, transform .15s;
+  }
+  .stat-card.clickable:hover { border-color: var(--cyan); transform: translateY(-1px); }
+  .stat-card.clickable.active { border-color: var(--navy); box-shadow: 0 0 0 2px var(--navy) inset; }
 
   /* ── TOOLBAR ── */
   .toolbar {
@@ -774,26 +785,26 @@
 
   <!-- STATS -->
   <div class="stats-row">
-    <div class="stat-card">
+    <button type="button" class="stat-card clickable" data-filter="all" onclick="setFilter('all')">
       <div class="stat-label">全部工作</div>
       <div class="stat-value cyan" id="statTotal">0</div>
       <div class="stat-sub">本期進行中</div>
-    </div>
-    <div class="stat-card">
+    </button>
+    <button type="button" class="stat-card clickable" data-filter="done" onclick="setFilter('done')">
       <div class="stat-label">已完成</div>
       <div class="stat-value green" id="statDone">0</div>
       <div class="stat-sub">工作完成</div>
-    </div>
-    <div class="stat-card">
+    </button>
+    <button type="button" class="stat-card clickable" data-filter="inprog" onclick="setFilter('inprog')">
       <div class="stat-label">進行中</div>
       <div class="stat-value cyan" id="statInprog">0</div>
       <div class="stat-sub">積極處理中</div>
-    </div>
-    <div class="stat-card">
+    </button>
+    <button type="button" class="stat-card clickable" data-filter="blocked" onclick="setFilter('blocked')">
       <div class="stat-label">停等中</div>
       <div class="stat-value red" id="statBlocked">0</div>
       <div class="stat-sub">需要協助</div>
-    </div>
+    </button>
   </div>
 
   <!-- TOOLBAR -->
@@ -801,11 +812,11 @@
     <div class="toolbar-title">工作清單</div>
     <div class="reorder-hint" id="reorderHint">💡 在「全部」檢視下，可拖曳 ⠿ 調整工作順序</div>
     <div class="filter-group">
-      <button class="filter-btn" onclick="setFilter('all', this)">全部</button>
-      <button class="filter-btn" onclick="setFilter('inprog', this)">進行中</button>
-      <button class="filter-btn" onclick="setFilter('pending', this)">待處理</button>
-      <button class="filter-btn" onclick="setFilter('done', this)">已完成</button>
-      <button class="filter-btn" onclick="setFilter('blocked', this)">停等</button>
+      <button class="filter-btn" data-filter="all" onclick="setFilter('all')">全部</button>
+      <button class="filter-btn" data-filter="inprog" onclick="setFilter('inprog')">進行中</button>
+      <button class="filter-btn" data-filter="pending" onclick="setFilter('pending')">待處理</button>
+      <button class="filter-btn" data-filter="done" onclick="setFilter('done')">已完成</button>
+      <button class="filter-btn" data-filter="blocked" onclick="setFilter('blocked')">停等</button>
     </div>
   </div>
 
@@ -1648,10 +1659,15 @@
   }
 
 
-  function setFilter(f, btn) {
+  function applyFilterActiveState(f) {
+    document.querySelectorAll('[data-filter]').forEach(el => {
+      el.classList.toggle('active', el.dataset.filter === f);
+    });
+  }
+
+  function setFilter(f) {
     currentFilter = f;
-    document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
+    applyFilterActiveState(f);
     renderTable();
   }
 
@@ -1995,8 +2011,7 @@
     }
     // Clear any active filters so the task is guaranteed to be visible
     currentFilter = 'all';
-    document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
-    document.querySelector('.filter-btn[onclick*="\'all\'"]')?.classList.add('active');
+    applyFilterActiveState('all');
     document.getElementById('searchInput').value = '';
     document.getElementById('periodFilter').value = '';
     document.getElementById('clientFilter').value = '';
