@@ -23,6 +23,7 @@
     --snow:   #F8FAFC;
     --muted:  #94A3B8;
     --green:  #10B981;
+    --outsource: #14532D;
     --amber:  #F59E0B;
     --red:    #EF4444;
     --purple: #8B5CF6;
@@ -238,6 +239,7 @@
   .task-table td { padding: 13px 16px; vertical-align: middle; }
 
   .task-name { font-weight: 600; font-size: 0.9rem; margin-bottom: 2px; }
+  .task-name.outsource-task, .card-name.outsource-task { color: var(--outsource); }
   .task-project { font-size: 0.75rem; color: var(--muted); }
   .col-client, .col-period { white-space: nowrap; }
   .days-badge {
@@ -1143,6 +1145,7 @@
       const avatarsHtml = renderAvatars(t.assignee, t.assigneeColor);
       const draggable = reorderable ? 'true' : 'false';
       const seqNo = String(tasks.findIndex(x=>x.id===t.id)+1).padStart(3,'0');
+      const isOutsource = t.createdByRole === 'outsource';
       return `
       <tr draggable="${draggable}" data-id="${t.id}" class="${reorderable ? 'row-draggable' : ''}">
         <td class="col-drag">${reorderable ? '<span class="drag-handle" title="拖曳排序">⠿</span>' : ''}</td>
@@ -1150,7 +1153,7 @@
           <div class="task-name-cell">
             <span class="seq-no">${seqNo}</span>
             <div>
-              <div class="task-name">${esc(t.name)}</div>
+              <div class="task-name${isOutsource ? ' outsource-task' : ''}"${isOutsource ? ' title="由外包團隊新增"' : ''}>${esc(t.name)}</div>
               <div class="task-project">${esc(t.desc||'')}</div>
             </div>
           </div>
@@ -1209,6 +1212,7 @@
       const pct = Math.min(100, Math.max(0, t.progress||0));
       const avatarsHtml = renderAvatars(t.assignee, t.assigneeColor);
       const seqNo = String(tasks.findIndex(x=>x.id===t.id)+1).padStart(3,'0');
+      const isOutsource = t.createdByRole === 'outsource';
       return `
       <div class="task-card" data-id="${t.id}" ${reorderable ? 'data-draggable="true"' : ''}>
         <div class="card-top">
@@ -1217,7 +1221,7 @@
             <div class="task-name-cell">
               <span class="seq-no">${seqNo}</span>
               <div>
-                <div class="card-name">${esc(t.name)}</div>
+                <div class="card-name${isOutsource ? ' outsource-task' : ''}"${isOutsource ? ' title="由外包團隊新增"' : ''}>${esc(t.name)}</div>
                 ${t.desc ? `<div class="card-desc">${esc(t.desc)}</div>` : ''}
               </div>
             </div>
@@ -1719,9 +1723,11 @@
     };
     if (editId) {
       const idx = tasks.findIndex(t=>t.id===editId);
+      task.createdByRole = tasks[idx].createdByRole || 'internal';
       tasks[idx] = task;
       showToast('工作已更新');
     } else {
+      task.createdByRole = currentRole;
       tasks.push(task);
       showToast('工作已新增');
     }
@@ -1888,13 +1894,25 @@
   // Note: this is a basic deterrent, not real security — the password is
   // visible in the page source to anyone who looks.
   const TEAM_PASSWORD = '54071585';
+  const OUTSOURCE_PASSWORD = '54071585PTG';
   const AUTH_KEY = 'progresstrack-auth';
+  const ROLE_KEY = 'progresstrack-role';
+  // 'internal' = 原團隊帳號；'outsource' = 外包團隊帳號。
+  // 兩組密碼登入後看到的資料完全相同（同一份 Firestore 資料），
+  // 差別只在於外包帳號新增的工作項目，名稱會顯示為深綠色以利區分。
+  let currentRole = 'internal';
 
   function checkPassword() {
     const input = document.getElementById('loginInput');
     const error = document.getElementById('loginError');
-    if (input.value === TEAM_PASSWORD) {
+    let role = null;
+    if (input.value === TEAM_PASSWORD) role = 'internal';
+    else if (input.value === OUTSOURCE_PASSWORD) role = 'outsource';
+
+    if (role) {
+      currentRole = role;
       localStorage.setItem(AUTH_KEY, '1');
+      localStorage.setItem(ROLE_KEY, role);
       document.getElementById('loginOverlay').classList.add('hidden');
       startApp();
     } else {
@@ -1968,6 +1986,7 @@
 
   // ── INIT ──
   if (localStorage.getItem(AUTH_KEY) === '1') {
+    currentRole = localStorage.getItem(ROLE_KEY) || 'internal';
     document.getElementById('loginOverlay').classList.add('hidden');
     startApp();
   } else {
