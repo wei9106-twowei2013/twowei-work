@@ -765,6 +765,7 @@
     <button class="btn-pdf" onclick="document.getElementById('importFile').click()" title="從 JSON 檔案匯入工作資料"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 15 12 9 18 15"/></svg> 匯入</button>
     <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(this)">
     <button class="btn-new" onclick="openModal()">＋ 新增工作</button>
+    <button class="btn-pdf" onclick="logout()" title="登出"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> 登出</button>
   </div>
 </header>
 
@@ -1048,8 +1049,9 @@
   async function saveTasks() { await persistTasks(); }
 
   // 即時監聽 Firestore 變更，有人儲存時所有人自動更新
+  let realtimeUnsubscribe = null;
   function startRealtimeSync() {
-    DOC_REF.onSnapshot(snap => {
+    realtimeUnsubscribe = DOC_REF.onSnapshot(snap => {
       if (isSyncing) return; // 自己正在寫入時忽略
       if (!snap.exists) return;
       const json = JSON.stringify(snap.data().tasks);
@@ -1928,6 +1930,20 @@
     loginInputEl.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') checkPassword();
     });
+  }
+
+  function logout() {
+    if (!confirm('確定要登出嗎？')) return;
+    if (realtimeUnsubscribe) { realtimeUnsubscribe(); realtimeUnsubscribe = null; }
+    localStorage.removeItem(AUTH_KEY);
+    localStorage.removeItem(ROLE_KEY);
+    currentRole = 'internal';
+    document.getElementById('loginOverlay').classList.remove('hidden');
+    const input = document.getElementById('loginInput');
+    const error = document.getElementById('loginError');
+    input.value = '';
+    error.style.display = 'none';
+    input.focus();
   }
 
   function startApp() {
