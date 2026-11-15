@@ -1861,24 +1861,24 @@
       t.due ? `預定完成：${formatDate(t.due)}` : null,
     ].filter(Boolean).join('\n');
 
-    // Prefer the native share sheet (on mobile this includes LINE directly)
-    // Pass url separately so LINE generates a proper link preview card
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: shareTitle, text: shareText, url });
-        return;
-      } catch (err) {
-        if (err.name === 'AbortError') return;
-      }
-    }
+    // 用 LINE 專屬分享連結，把工作名稱直接帶進訊息
+    const lineMsg = encodeURIComponent(`📋 ${t.name}\n${url}`);
+    const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
+    const lineUrl = isMobile
+      ? `line://msg/text/${lineMsg}`
+      : `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(url)}&text=${encodeURIComponent(`📋 ${t.name}`)}`;
 
-    // Desktop fallback: copy the URL to clipboard
-    try {
-      await navigator.clipboard.writeText(url);
-      showToast('✓ 已複製分享連結');
-    } catch (err) {
-      window.prompt('請手動複製此連結：', url);
-    }
+    // 嘗試開啟 LINE，若失敗則複製連結
+    const a = document.createElement('a');
+    a.href = lineUrl;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    // 同時複製連結備用
+    try { await navigator.clipboard.writeText(url); } catch(e) {}
   }
 
   // ── 統計卡片點擊篩選 ──
