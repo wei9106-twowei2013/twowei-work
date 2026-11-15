@@ -925,6 +925,10 @@
       <input class="form-input" id="fAssignee" placeholder="例：王小明、林小華">
       <div class="color-swatches" id="colorSwatches"></div>
     </div>
+    <div class="form-group">
+      <label class="form-label">雲端硬碟連結</label>
+      <input class="form-input" id="fDrive" placeholder="貼上 Google Drive 資料夾連結">
+    </div>
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeModal()">取消</button>
       <button class="btn-save" onclick="saveTask()">儲存工作</button>
@@ -1191,7 +1195,7 @@
         <td class="col-actions">
           <div class="row-actions">
             <button class="icon-btn share-btn" onclick="shareTask(${t.id})" title="分享到 LINE"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></button>
-            <button class="icon-btn drive-btn" onclick="openDrive()" title="附加說明（Google Drive）"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></button>
+            <button class="icon-btn drive-btn" onclick="openDrive(${t.id})" title="附加說明（Google Drive）"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></button>
             <button class="icon-btn complete-btn${t.status==='done' ? ' active' : ''}" onclick="toggleComplete(${t.id})" title="${t.status==='done' ? '取消完成' : '標記為已完成'}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></button>
             <button class="icon-btn" onclick="openEdit(${t.id})" title="編輯"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
             <button class="icon-btn danger" onclick="deleteTask(${t.id})" title="刪除"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
@@ -1257,7 +1261,7 @@
           <div class="card-assignee">${avatarsHtml}</div>
           <div class="card-actions">
             <button class="icon-btn share-btn" onclick="shareTask(${t.id})" title="分享到 LINE"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></button>
-            <button class="icon-btn drive-btn" onclick="openDrive()" title="附加說明（Google Drive）"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></button>
+            <button class="icon-btn drive-btn" onclick="openDrive(${t.id})" title="附加說明（Google Drive）"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></button>
             <button class="icon-btn complete-btn${t.status==='done' ? ' active' : ''}" onclick="toggleComplete(${t.id})" title="${t.status==='done' ? '取消完成' : '標記完成'}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></button>
             <button class="icon-btn" onclick="openEdit(${t.id})" title="編輯"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
             <button class="icon-btn danger" onclick="deleteTask(${t.id})" title="刪除"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
@@ -1679,6 +1683,7 @@
     document.getElementById('fProgress').value = 0;
     document.getElementById('fProgressVal').textContent = '0%';
     document.getElementById('fAssignee').value = '';
+    document.getElementById('fDrive').value = '';
     selectedAssigneeColor = null;
     renderColorSwatches();
     document.getElementById('modalOverlay').classList.add('open');
@@ -1700,6 +1705,7 @@
     document.getElementById('fProgress').value = t.progress||0;
     document.getElementById('fProgressVal').textContent = (t.progress||0)+'%';
     document.getElementById('fAssignee').value = t.assignee||'';
+    document.getElementById('fDrive').value = t.driveUrl||'';
     selectedAssigneeColor = t.assigneeColor || null;
     renderColorSwatches();
     document.getElementById('modalOverlay').classList.add('open');
@@ -1734,6 +1740,7 @@
       due: document.getElementById('fDue').value,
       progress: parseInt(document.getElementById('fProgress').value)||0,
       assignee: document.getElementById('fAssignee').value.trim(),
+      driveUrl: document.getElementById('fDrive').value.trim(),
       assigneeColor: selectedAssigneeColor,
       updatedAt: Date.now(),
     };
@@ -1807,7 +1814,11 @@
 
   const DRIVE_URL = 'https://drive.google.com/drive/folders/1Lt5jN0w9MqSrm7-StUD9SC7Ym-ikGKCj?usp=sharing';
 
-  function openDrive() {
+  function openDrive(id) {
+    if (id !== undefined) {
+      const t = tasks.find(x => x.id === id);
+      if (t && t.driveUrl) { window.open(t.driveUrl, '_blank'); return; }
+    }
     window.open(DRIVE_URL, '_blank');
   }
 
@@ -2073,7 +2084,7 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
             分享
           </button>
-          <button class="sv-action-btn drive" onclick="window.open('${DRIVE_URL}','_blank')" title="雲端硬碟">
+          <button class="sv-action-btn drive" onclick="window.open(svTask.driveUrl||'${DRIVE_URL}','_blank')" title="雲端硬碟">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
             雲端硬碟
           </button>
