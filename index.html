@@ -1432,22 +1432,90 @@
 
   // Calculate days between start and end (or today if not done).
   // Returns a display string: e.g. "12 天" when done, "進行 8 天" when in progress.
+  // ── 假日快取（年份 → Set of 'YYYY-MM-DD'）──
+  const holidayCache = {};
+  let holidayCacheLoading = new Set();
+
+  async function fetchHolidays(year) {
+    if (holidayCache[year]) return holidayCache[year];
+    if (holidayCacheLoading.has(year)) return null; // 載入中
+    holidayCacheLoading.add(year);
+    try {
+      const r = await fetch(`https://cdn.jsdelivr.net/gh/imsyuan/taiwan-holidays/data/${year}/holidays.json`);
+      if (!r.ok) throw new Error('fetch fail');
+      const list = await r.json();
+      const set = new Set();
+      for (const d of list) {
+        if (d.isHoliday) {
+          // date 格式：YYYYMMDD → 轉成 YYYY-MM-DD
+          const s = String(d.date);
+          set.add(`${s.slice(0,4)}-${s.slice(4,6)}-${s.slice(6,8)}`);
+        }
+      }
+      holidayCache[year] = set;
+      return set;
+    } catch(e) {
+      holidayCache[year] = null; // 失敗則退回日曆天
+      return null;
+    } finally {
+      holidayCacheLoading.delete(year);
+    }
+  }
+
+  // 預先載入假日資料，載完後重新渲染
+  async function preloadHolidays() {
+    const years = new Set();
+    const thisYear = new Date().getFullYear();
+    years.add(thisYear - 1);
+    years.add(thisYear);
+    years.add(thisYear + 1);
+    tasks.forEach(t => {
+      if (t.startDate) years.add(parseInt(t.startDate.slice(0,4)));
+      if (t.doneDate)  years.add(parseInt(t.doneDate.slice(0,4)));
+      if (t.due)       years.add(parseInt(t.due.slice(0,4)));
+    });
+    await Promise.all([...years].map(y => fetchHolidays(y)));
+    renderTable(); // 重新渲染顯示正確天數
+  }
+
+  function countWorkdays(startStr, endStr) {
+    const start = new Date(startStr + 'T00:00:00');
+    const end   = new Date(endStr   + 'T00:00:00');
+    if (end < start) return 0;
+    let count = 0;
+    const cur = new Date(start);
+    while (cur <= end) {
+      const yyyy = cur.getFullYear();
+      const mm   = String(cur.getMonth()+1).padStart(2,'0');
+      const dd   = String(cur.getDate()).padStart(2,'0');
+      const dateStr = `${yyyy}-${mm}-${dd}`;
+      const holidays = holidayCache[yyyy];
+      if (holidays) {
+        if (!holidays.has(dateStr)) count++; // 非假日才計入
+      } else {
+        // 假日資料未載入，退回：只扣週六日
+        const dow = cur.getDay();
+        if (dow !== 0 && dow !== 6) count++;
+      }
+      cur.setDate(cur.getDate() + 1);
+    }
+    return count;
+  }
+
   function calcDays(t) {
     if (!t.startDate) return '—';
-    const start = new Date(t.startDate + 'T00:00:00');
-    let end;
+    let endStr;
     if (t.status === 'done' && t.doneDate) {
-      end = new Date(t.doneDate + 'T00:00:00');
+      endStr = t.doneDate;
     } else if (t.status === 'done' && t.due) {
-      end = new Date(t.due + 'T00:00:00');
+      endStr = t.due;
     } else {
-      end = new Date();
-      end.setHours(0,0,0,0);
+      const n = new Date(); endStr = `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`;
     }
-    const days = Math.round((end - start) / (1000*60*60*24));
+    const days = countWorkdays(t.startDate, endStr);
     if (days < 0) return '—';
-    if (t.status === 'done') return `${days} 天`;
-    return `進行 ${days} 天`;
+    if (t.status === 'done') return `${days} 工作天`;
+    return `進行 ${days} 工作天`;
   }
 
   // Format "2026-06" -> "2026年6月" for dropdown labels
@@ -1964,6 +2032,7 @@
 
   function startApp() {
     loadTasks(false).then(() => {
+      preloadHolidays(); // 載入假日資料後自動重新渲染天數
       // 載入完成後啟動即時監聽，之後所有人的變更都會自動推送
       startRealtimeSync();
     });
@@ -2003,13 +2072,18 @@
     }
     const dayCount = (() => {
       if (!task.startDate) return null;
-      const start = new Date(task.startDate);
-      const end = task.status === 'done' && task.doneDate ? new Date(task.doneDate) : new Date();
-      const diff = Math.floor((end - start) / 86400000);
-      return diff >= 0 ? diff : null;
+      let endStr;
+      if (task.status === 'done' && task.doneDate) {
+        endStr = task.doneDate;
+      } else {
+        const n = new Date();
+        endStr = `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`;
+      }
+      const days = countWorkdays(task.startDate, endStr);
+      return days >= 0 ? days : null;
     })();
     const dayLabel = dayCount !== null
-      ? (task.status === 'done' ? `共 ${dayCount} 天` : `進行 ${dayCount} 天`)
+      ? (task.status === 'done' ? `共 ${dayCount} 工作天` : `進行 ${dayCount} 工作天`)
       : null;
     const dayColor = task.status === 'done' ? 'var(--green)' : 'var(--cyan)';
 
