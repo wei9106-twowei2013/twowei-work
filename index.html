@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>圖威工作進度系統</title>
+<meta property="og:site_name" content="圖威工作進度系統">
+<meta property="og:type" content="website">
+<meta property="og:title" content="圖威工作進度系統">
+<meta property="og:description" content="工作進度追蹤">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <!-- Firebase SDK (compat version — works in plain HTML without bundler) -->
@@ -1836,8 +1840,15 @@
     const url = buildTaskLink(t.id);
     const sm = statusMap[t.status] || statusMap.pending;
     const pct = Math.min(100, Math.max(0, t.progress||0));
-    const titleText = `📋 ${t.name}${t.desc ? '　' + t.desc : ''}`;
-    const bodyText = [
+    const sm = statusMap[t.status] || statusMap.pending;
+    const pct = Math.min(100, Math.max(0, t.progress || 0));
+    // LINE 顯示時，title 通常被忽略，text 才是訊息本體
+    // 把工作名稱放在 text 最前面，確保 LINE 訊息中清楚顯示
+    const shareTitle = t.name || '工作進度';
+    const shareText = [
+      `📋 ${t.name}`,
+      t.desc || null,
+      '─────────',
       t.project ? `工作內容：${t.project}` : null,
       t.client  ? `客戶：${t.client}` : null,
       `狀態：${sm.label}（${pct}%）`,
@@ -1848,7 +1859,7 @@
     // Pass url separately so LINE generates a proper link preview card
     if (navigator.share) {
       try {
-        await navigator.share({ title: titleText, text: bodyText, url });
+        await navigator.share({ title: shareTitle, text: shareText, url });
         return;
       } catch (err) {
         if (err.name === 'AbortError') return;
@@ -1959,8 +1970,21 @@
   }
 
   function renderShareView(task) {
-    const sm = statusMap[task.status] || statusMap.pending;
-    const pct = Math.min(100, Math.max(0, task.progress || 0));
+    // 讓 LINE / 社群平台預覽顯示工作名稱，而不是系統名稱
+    const taskTitle = task.name || '圖威工作進度系統';
+    document.title = taskTitle;
+    // og:title 也一併更新，讓 LINE 優先讀到正確標題
+    let ogTitle = document.querySelector('meta[property="og:title"]');
+    if (!ogTitle) { ogTitle = document.createElement('meta'); ogTitle.setAttribute('property','og:title'); document.head.appendChild(ogTitle); }
+    ogTitle.setAttribute('content', taskTitle);
+    let ogDesc = document.querySelector('meta[property="og:description"]');
+    if (!ogDesc) { ogDesc = document.createElement('meta'); ogDesc.setAttribute('property','og:description'); document.head.appendChild(ogDesc); }
+    const sm0 = statusMap[task.status] || statusMap.pending;
+    const pct0 = Math.min(100, Math.max(0, task.progress || 0));
+    ogDesc.setAttribute('content', [task.desc, task.client ? `客戶：${task.client}` : null, `狀態：${sm0.label}（${pct0}%）`].filter(Boolean).join('　'));
+
+    const sm = sm0;
+    const pct = pct0;
     const assignees = task.assignee ? task.assignee.split(/[,，]/).map(s=>s.trim()).filter(Boolean) : [];
     const colorPalette = ['#E53E3E','#DD6B20','#D69E2E','#38A169','#00B5D8','#3182CE','#6B46C1','#D53F8C','#2D3748','#319795'];
     function getAssigneeColor(name) {
