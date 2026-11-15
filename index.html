@@ -1815,11 +1815,7 @@
   // Builds a direct link back into this app, pre-filled with ?task=ID so
   // the recipient (after logging in) is auto-scrolled to this exact task.
   function buildTaskLink(id) {
-    const url = new URL(window.location.href);
-    url.search = ''; // drop any existing query params
-    url.searchParams.set('view', 'task');
-    url.searchParams.set('id', id);
-    return url.toString();
+    return `https://twowei-work.wei9106.workers.dev/?view=task&id=${id}`;
   }
 
   function buildShareText(t) {
