@@ -4,9 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>圖威工作進度系統</title>
-<link rel="apple-touch-icon" href="icon-progress.png">
-<link rel="icon" type="image/png" href="icon-progress.png">
-<meta name="apple-mobile-web-app-title" content="圖威進度">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <!-- Firebase SDK (compat version — works in plain HTML without bundler) -->
@@ -26,7 +23,6 @@
     --snow:   #F8FAFC;
     --muted:  #94A3B8;
     --green:  #10B981;
-    --outsource: #14532D;
     --amber:  #F59E0B;
     --red:    #EF4444;
     --purple: #8B5CF6;
@@ -134,7 +130,7 @@
   /* ── STATS ROW ── */
   .stats-row {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 1rem;
     margin-bottom: 2rem;
   }
@@ -165,17 +161,6 @@
   .stat-value.amber  { color: var(--amber); }
   .stat-value.red    { color: var(--red); }
   .stat-sub { font-size: 0.75rem; color: var(--muted); }
-  .stat-card.clickable {
-    cursor: pointer;
-    text-align: left;
-    font: inherit;
-    appearance: none;
-    -webkit-appearance: none;
-    margin: 0;
-    transition: border-color .15s, box-shadow .15s, transform .15s;
-  }
-  .stat-card.clickable:hover { border-color: var(--cyan); transform: translateY(-1px); }
-  .stat-card.clickable.active { border-color: var(--navy); box-shadow: 0 0 0 2px var(--navy) inset; }
 
   /* ── TOOLBAR ── */
   .toolbar {
@@ -253,7 +238,6 @@
   .task-table td { padding: 13px 16px; vertical-align: middle; }
 
   .task-name { font-weight: 600; font-size: 0.9rem; margin-bottom: 2px; }
-  .task-name.outsource-task, .card-name.outsource-task { color: var(--outsource); }
   .task-project { font-size: 0.75rem; color: var(--muted); }
   .col-client, .col-period { white-space: nowrap; }
   .days-badge {
@@ -418,8 +402,6 @@
   .complete-btn:hover { background: var(--green); border-color: var(--green); color: white; }
   .complete-btn.active { background: var(--green); border-color: var(--green); color: white; }
   .drive-btn:hover { background: #1a73e8; border-color: #1a73e8; color: white; }
-  .drive-btn.has-link { background: #1a73e8; border-color: #1a73e8; color: white; }
-  .drive-btn.has-link:hover { background: #1558b0; border-color: #1558b0; }
   .share-btn:hover { background: #06C755; border-color: #06C755; color: white; }
 
   /* ── LOGIN OVERLAY ── */
@@ -778,10 +760,9 @@
     <span class="today-label" id="todayLabel"></span>
     <button class="btn-pdf" onclick="exportPDF()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg> PDF</button>
     <button class="btn-pdf" onclick="exportJSON()" title="匯出所有工作資料為 JSON 檔案"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg> 匯出</button>
-    <button class="btn-pdf" id="importBtn" onclick="document.getElementById('importFile').click()" title="從 JSON 檔案匯入工作資料"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 15 12 9 18 15"/></svg> 匯入</button>
+    <button class="btn-pdf" onclick="document.getElementById('importFile').click()" title="從 JSON 檔案匯入工作資料"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 15 12 9 18 15"/></svg> 匯入</button>
     <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(this)">
     <button class="btn-new" onclick="openModal()">＋ 新增工作</button>
-    <button class="btn-pdf" onclick="logout()" title="登出"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> 登出</button>
   </div>
 </header>
 
@@ -790,31 +771,26 @@
 
   <!-- STATS -->
   <div class="stats-row">
-    <button type="button" class="stat-card clickable" data-filter="all" onclick="setFilter('all')">
+    <div class="stat-card">
       <div class="stat-label">全部工作</div>
       <div class="stat-value cyan" id="statTotal">0</div>
       <div class="stat-sub">本期進行中</div>
-    </button>
-    <button type="button" class="stat-card clickable" data-filter="inprog" onclick="setFilter('inprog')">
-      <div class="stat-label">進行中</div>
-      <div class="stat-value cyan" id="statInprog">0</div>
-      <div class="stat-sub">積極處理中</div>
-    </button>
-    <button type="button" class="stat-card clickable" data-filter="pending" onclick="setFilter('pending')">
-      <div class="stat-label">待處理</div>
-      <div class="stat-value amber" id="statPending">0</div>
-      <div class="stat-sub">尚未開始</div>
-    </button>
-    <button type="button" class="stat-card clickable" data-filter="done" onclick="setFilter('done')">
+    </div>
+    <div class="stat-card">
       <div class="stat-label">已完成</div>
       <div class="stat-value green" id="statDone">0</div>
       <div class="stat-sub">工作完成</div>
-    </button>
-    <button type="button" class="stat-card clickable" data-filter="blocked" onclick="setFilter('blocked')">
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">進行中</div>
+      <div class="stat-value cyan" id="statInprog">0</div>
+      <div class="stat-sub">積極處理中</div>
+    </div>
+    <div class="stat-card">
       <div class="stat-label">停等中</div>
       <div class="stat-value red" id="statBlocked">0</div>
       <div class="stat-sub">需要協助</div>
-    </button>
+    </div>
   </div>
 
   <!-- TOOLBAR -->
@@ -822,11 +798,11 @@
     <div class="toolbar-title">工作清單</div>
     <div class="reorder-hint" id="reorderHint">💡 在「全部」檢視下，可拖曳 ⠿ 調整工作順序</div>
     <div class="filter-group">
-      <button class="filter-btn" data-filter="all" onclick="setFilter('all')">全部</button>
-      <button class="filter-btn" data-filter="inprog" onclick="setFilter('inprog')">進行中</button>
-      <button class="filter-btn" data-filter="pending" onclick="setFilter('pending')">待處理</button>
-      <button class="filter-btn" data-filter="done" onclick="setFilter('done')">已完成</button>
-      <button class="filter-btn" data-filter="blocked" onclick="setFilter('blocked')">停等</button>
+      <button class="filter-btn active" onclick="setFilter('all', this)">全部</button>
+      <button class="filter-btn" onclick="setFilter('inprog', this)">進行中</button>
+      <button class="filter-btn" onclick="setFilter('pending', this)">待處理</button>
+      <button class="filter-btn" onclick="setFilter('done', this)">已完成</button>
+      <button class="filter-btn" onclick="setFilter('blocked', this)">停等</button>
     </div>
   </div>
 
@@ -972,9 +948,7 @@
 
   let tasks = [];
   let editId = null;
-  // 一進入首頁預設只顯示「進行中」與「停等中」，不是全部工作。
-  // 使用者要看全部工作時，自行點擊「全部」篩選鈕。
-  let currentFilter = 'default';
+  let currentFilter = 'all';
   let nextId = 1;
   let isSyncing = false;
   let lastSavedJSON = '';
@@ -1072,9 +1046,8 @@
   async function saveTasks() { await persistTasks(); }
 
   // 即時監聽 Firestore 變更，有人儲存時所有人自動更新
-  let realtimeUnsubscribe = null;
   function startRealtimeSync() {
-    realtimeUnsubscribe = DOC_REF.onSnapshot(snap => {
+    DOC_REF.onSnapshot(snap => {
       if (isSyncing) return; // 自己正在寫入時忽略
       if (!snap.exists) return;
       const json = JSON.stringify(snap.data().tasks);
@@ -1170,7 +1143,6 @@
       const avatarsHtml = renderAvatars(t.assignee, t.assigneeColor);
       const draggable = reorderable ? 'true' : 'false';
       const seqNo = String(tasks.findIndex(x=>x.id===t.id)+1).padStart(3,'0');
-      const isOutsource = t.createdByRole === 'outsource';
       return `
       <tr draggable="${draggable}" data-id="${t.id}" class="${reorderable ? 'row-draggable' : ''}">
         <td class="col-drag">${reorderable ? '<span class="drag-handle" title="拖曳排序">⠿</span>' : ''}</td>
@@ -1178,7 +1150,7 @@
           <div class="task-name-cell">
             <span class="seq-no">${seqNo}</span>
             <div>
-              <div class="task-name${isOutsource ? ' outsource-task' : ''}"${isOutsource ? ' title="由外包團隊新增"' : ''}>${esc(t.name)}</div>
+              <div class="task-name">${esc(t.name)}</div>
               <div class="task-project">${esc(t.desc||'')}</div>
             </div>
           </div>
@@ -1204,7 +1176,7 @@
         <td class="col-actions">
           <div class="row-actions">
             <button class="icon-btn share-btn" onclick="shareTask(${t.id})" title="分享到 LINE"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></button>
-            <button class="icon-btn drive-btn${t.driveLink ? ' has-link' : ''}" onclick="openDrive(${t.id})" oncontextmenu="editDriveLink(${t.id}); return false;" title="${t.driveLink ? '開啟雲端硬碟連結（右鍵可修改）' : '點擊貼上這筆工作的雲端硬碟網址'}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></button>
+            <button class="icon-btn drive-btn" onclick="openDrive()" title="附加說明（Google Drive）"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></button>
             <button class="icon-btn complete-btn${t.status==='done' ? ' active' : ''}" onclick="toggleComplete(${t.id})" title="${t.status==='done' ? '取消完成' : '標記為已完成'}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></button>
             <button class="icon-btn" onclick="openEdit(${t.id})" title="編輯"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
             <button class="icon-btn danger" onclick="deleteTask(${t.id})" title="刪除"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
@@ -1237,7 +1209,6 @@
       const pct = Math.min(100, Math.max(0, t.progress||0));
       const avatarsHtml = renderAvatars(t.assignee, t.assigneeColor);
       const seqNo = String(tasks.findIndex(x=>x.id===t.id)+1).padStart(3,'0');
-      const isOutsource = t.createdByRole === 'outsource';
       return `
       <div class="task-card" data-id="${t.id}" ${reorderable ? 'data-draggable="true"' : ''}>
         <div class="card-top">
@@ -1246,7 +1217,7 @@
             <div class="task-name-cell">
               <span class="seq-no">${seqNo}</span>
               <div>
-                <div class="card-name${isOutsource ? ' outsource-task' : ''}"${isOutsource ? ' title="由外包團隊新增"' : ''}>${esc(t.name)}</div>
+                <div class="card-name">${esc(t.name)}</div>
                 ${t.desc ? `<div class="card-desc">${esc(t.desc)}</div>` : ''}
               </div>
             </div>
@@ -1271,7 +1242,7 @@
           <div class="card-assignee">${avatarsHtml}</div>
           <div class="card-actions">
             <button class="icon-btn share-btn" onclick="shareTask(${t.id})" title="分享到 LINE"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></button>
-            <button class="icon-btn drive-btn${t.driveLink ? ' has-link' : ''}" onclick="openDrive(${t.id})" oncontextmenu="editDriveLink(${t.id}); return false;" title="${t.driveLink ? '開啟雲端硬碟連結（右鍵可修改）' : '點擊貼上這筆工作的雲端硬碟網址'}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></button>
+            <button class="icon-btn drive-btn" onclick="openDrive()" title="附加說明（Google Drive）"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></button>
             <button class="icon-btn complete-btn${t.status==='done' ? ' active' : ''}" onclick="toggleComplete(${t.id})" title="${t.status==='done' ? '取消完成' : '標記完成'}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></button>
             <button class="icon-btn" onclick="openEdit(${t.id})" title="編輯"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
             <button class="icon-btn danger" onclick="deleteTask(${t.id})" title="刪除"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
@@ -1428,12 +1399,10 @@
   }
 
   function updateStats() {
-    const vt = visibleTasks();
-    document.getElementById('statTotal').textContent   = vt.length;
-    document.getElementById('statPending').textContent = vt.filter(t=>t.status==='pending').length;
-    document.getElementById('statDone').textContent    = vt.filter(t=>t.status==='done').length;
-    document.getElementById('statInprog').textContent  = vt.filter(t=>t.status==='inprog').length;
-    document.getElementById('statBlocked').textContent = vt.filter(t=>t.status==='blocked').length;
+    document.getElementById('statTotal').textContent   = tasks.length;
+    document.getElementById('statDone').textContent    = tasks.filter(t=>t.status==='done').length;
+    document.getElementById('statInprog').textContent  = tasks.filter(t=>t.status==='inprog').length;
+    document.getElementById('statBlocked').textContent = tasks.filter(t=>t.status==='blocked').length;
   }
 
   function formatDate(s) {
@@ -1477,12 +1446,11 @@
     const prevClient   = clientSel.value;
     const prevAssignee = assigneeSel.value;
 
-    const vt = visibleTasks();
-    const periods   = [...new Set(vt.map(t=>t.period).filter(Boolean))].sort().reverse();
-    const clients   = [...new Set(vt.map(t=>t.client).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'zh-Hant'));
+    const periods   = [...new Set(tasks.map(t=>t.period).filter(Boolean))].sort().reverse();
+    const clients   = [...new Set(tasks.map(t=>t.client).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'zh-Hant'));
     // Flatten all assignee names (handles multi-person like "俊偉、昆毅")
     const assignees = [...new Set(
-      vt.flatMap(t => splitAssignees(t.assignee))
+      tasks.flatMap(t => splitAssignees(t.assignee))
     )].sort((a,b)=>a.localeCompare(b,'zh-Hant'));
 
     periodSel.innerHTML = '<option value="">所有年月</option>' +
@@ -1517,7 +1485,6 @@
   // (no status filter, search, or dropdown filters) so drag positions map
   // 1:1 to array indices.
   function canReorder() {
-    if (currentRole === 'outsource') return false;
     const periodFilter   = document.getElementById('periodFilter').value;
     const clientFilter   = document.getElementById('clientFilter').value;
     const assigneeFilter = document.getElementById('assigneeFilter').value;
@@ -1525,21 +1492,10 @@
     return currentFilter === 'all' && !periodFilter && !clientFilter && !assigneeFilter && !searchTerm;
   }
 
-  // 外包帳號（currentRole === 'outsource'）只看得到自己新增的工作；
-  // 內部團隊帳號一律看得到全部工作。所有畫面顯示、統計、篩選選單、
-  // 匯出都要透過這層，避免外包帳號看到內部資料。
-  function visibleTasks() {
-    return currentRole === 'outsource'
-      ? tasks.filter(t => t.createdByRole === 'outsource')
-      : tasks;
-  }
-
   function getFilteredTasks() {
     let filtered = currentFilter === 'all'
-      ? visibleTasks()
-      : currentFilter === 'default'
-        ? visibleTasks().filter(t => t.status === 'inprog' || t.status === 'blocked')
-        : visibleTasks().filter(t => t.status === currentFilter);
+      ? tasks
+      : tasks.filter(t => t.status === currentFilter);
 
     const periodFilter   = document.getElementById('periodFilter').value;
     const clientFilter   = document.getElementById('clientFilter').value;
@@ -1607,8 +1563,7 @@
 
   // ── JSON 匯出 / 匯入 ──
   function exportJSON() {
-    const vt = visibleTasks();
-    const json = JSON.stringify(vt, null, 2);
+    const json = JSON.stringify(tasks, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -1617,17 +1572,12 @@
     a.download = `progresstrack-backup-${dateStr}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    showToast(`✓ 已匯出 ${vt.length} 筆工作資料`);
+    showToast(`✓ 已匯出 ${tasks.length} 筆工作資料`);
   }
 
   let pendingImportData = null;
 
   function importJSON(input) {
-    if (currentRole === 'outsource') {
-      showToast('⚠ 外包帳號無法使用匯入功能');
-      input.value = '';
-      return;
-    }
     const file = input.files[0];
     if (!file) return;
     const reader = new FileReader();
@@ -1670,15 +1620,10 @@
   }
 
 
-  function applyFilterActiveState(f) {
-    document.querySelectorAll('[data-filter]').forEach(el => {
-      el.classList.toggle('active', el.dataset.filter === f);
-    });
-  }
-
-  function setFilter(f) {
+  function setFilter(f, btn) {
     currentFilter = f;
-    applyFilterActiveState(f);
+    document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
     renderTable();
   }
 
@@ -1774,11 +1719,9 @@
     };
     if (editId) {
       const idx = tasks.findIndex(t=>t.id===editId);
-      task.createdByRole = tasks[idx].createdByRole || 'internal';
       tasks[idx] = task;
       showToast('工作已更新');
     } else {
-      task.createdByRole = currentRole;
       tasks.push(task);
       showToast('工作已新增');
     }
@@ -1842,35 +1785,10 @@
   }
 
 
+  const DRIVE_URL = 'https://drive.google.com/drive/folders/1Lt5jN0w9MqSrm7-StUD9SC7Ym-ikGKCj?usp=sharing';
 
-  // 「附加說明」連結現在是每筆工作各自填寫的雲端硬碟網址，不再是固定的單一連結。
-  // 左鍵點擊：有連結就開啟，沒有就跳出輸入框讓使用者貼上網址。
-  // 右鍵點擊：隨時可以修改或清除已填寫的網址。
-  function openDrive(id) {
-    const t = tasks.find(x=>x.id===id);
-    if (!t) return;
-    if (t.driveLink) {
-      window.open(t.driveLink, '_blank');
-    } else {
-      editDriveLink(id);
-    }
-  }
-
-  async function editDriveLink(id) {
-    const t = tasks.find(x=>x.id===id);
-    if (!t) return;
-    const input = window.prompt('請貼上這筆工作的雲端硬碟（Google Drive）網址，留空並確定可清除：', t.driveLink || '');
-    if (input === null) return; // 使用者按取消
-    const url = input.trim();
-    if (url && !/^https?:\/\//i.test(url)) {
-      showToast('⚠ 請輸入完整網址（需以 http:// 或 https:// 開頭）');
-      return;
-    }
-    t.driveLink = url || null;
-    t.updatedAt = Date.now();
-    renderTable();
-    await persistTasks();
-    showToast(url ? '✓ 已儲存雲端硬碟連結' : '已清除雲端硬碟連結');
+  function openDrive() {
+    window.open(DRIVE_URL, '_blank');
   }
 
   // ── 分享工作（手動，給使用者自己貼到 LINE） ──
@@ -1879,7 +1797,8 @@
   function buildTaskLink(id) {
     const url = new URL(window.location.href);
     url.search = ''; // drop any existing query params
-    url.searchParams.set('task', id);
+    url.searchParams.set('view', 'task');
+    url.searchParams.set('id', id);
     return url.toString();
   }
 
@@ -1896,8 +1815,7 @@
       `狀態：${sm.label}（${pct}%）`,
       t.due ? `預定完成：${formatDate(t.due)}` : null,
       '',
-      '🔗 點此直接查看：',
-      buildTaskLink(t.id),
+      `🔗 ${buildTaskLink(t.id)}`,
       '',
       '— 圖威工作進度系統',
     ].filter(line => line !== null);
@@ -1970,25 +1888,13 @@
   // Note: this is a basic deterrent, not real security — the password is
   // visible in the page source to anyone who looks.
   const TEAM_PASSWORD = '54071585';
-  const OUTSOURCE_PASSWORD = '54071585PTG';
   const AUTH_KEY = 'progresstrack-auth';
-  const ROLE_KEY = 'progresstrack-role';
-  // 'internal' = 原團隊帳號；'outsource' = 外包團隊帳號。
-  // 兩組密碼登入後看到的資料完全相同（同一份 Firestore 資料），
-  // 差別只在於外包帳號新增的工作項目，名稱會顯示為深綠色以利區分。
-  let currentRole = 'internal';
 
   function checkPassword() {
     const input = document.getElementById('loginInput');
     const error = document.getElementById('loginError');
-    let role = null;
-    if (input.value === TEAM_PASSWORD) role = 'internal';
-    else if (input.value === OUTSOURCE_PASSWORD) role = 'outsource';
-
-    if (role) {
-      currentRole = role;
+    if (input.value === TEAM_PASSWORD) {
       localStorage.setItem(AUTH_KEY, '1');
-      localStorage.setItem(ROLE_KEY, role);
       document.getElementById('loginOverlay').classList.add('hidden');
       startApp();
     } else {
@@ -2006,77 +1912,121 @@
     });
   }
 
-  function logout() {
-    if (!confirm('確定要登出嗎？')) return;
-    if (realtimeUnsubscribe) { realtimeUnsubscribe(); realtimeUnsubscribe = null; }
-    localStorage.removeItem(AUTH_KEY);
-    localStorage.removeItem(ROLE_KEY);
-    currentRole = 'internal';
-    document.getElementById('loginOverlay').classList.remove('hidden');
-    const input = document.getElementById('loginInput');
-    const error = document.getElementById('loginError');
-    input.value = '';
-    error.style.display = 'none';
-    input.focus();
-  }
-
   function startApp() {
-    document.getElementById('importBtn').style.display = currentRole === 'outsource' ? 'none' : '';
     loadTasks(false).then(() => {
       // 載入完成後啟動即時監聽，之後所有人的變更都會自動推送
       startRealtimeSync();
-      // 處理分享連結帶來的工作 ID（?task=14），自動捲動並高亮顯示
-      scrollToSharedTask();
     });
   }
 
-  // ── 分享連結深層連結（?task=ID） ──
-  function getSharedTaskId() {
-    const params = new URLSearchParams(window.location.search);
-    const id = params.get('task');
-    return id ? parseInt(id) : null;
+  // ── 分享頁面模式（?view=task&id=XX）── 不需密碼，只顯示單一工作
+  function isShareViewMode() {
+    const p = new URLSearchParams(window.location.search);
+    return p.get('view') === 'task' && p.get('id');
   }
 
-  function scrollToSharedTask() {
-    const id = getSharedTaskId();
-    if (!id) return;
-    const t = visibleTasks().find(x => x.id === id);
-    if (!t) {
-      showToast('⚠ 找不到該筆工作，可能已被刪除');
-      return;
+  function getShareViewId() {
+    return parseInt(new URLSearchParams(window.location.search).get('id'));
+  }
+
+  function renderShareView(task) {
+    const sm = statusMap[task.status] || statusMap.pending;
+    const pct = Math.min(100, Math.max(0, task.progress || 0));
+    const assignees = task.assignee ? task.assignee.split(/[,，]/).map(s=>s.trim()).filter(Boolean) : [];
+    const colorPalette = ['#E53E3E','#DD6B20','#D69E2E','#38A169','#00B5D8','#3182CE','#6B46C1','#D53F8C','#2D3748','#319795'];
+    function getAssigneeColor(name) {
+      let hash = 0; for (let i=0;i<name.length;i++) hash = name.charCodeAt(i)+((hash<<5)-hash);
+      return colorPalette[Math.abs(hash)%colorPalette.length];
     }
-    // Clear any active filters so the task is guaranteed to be visible
-    currentFilter = 'all';
-    applyFilterActiveState('all');
-    document.getElementById('searchInput').value = '';
-    document.getElementById('periodFilter').value = '';
-    document.getElementById('clientFilter').value = '';
-    document.getElementById('assigneeFilter').value = '';
-    renderTable();
+    const dayCount = (() => {
+      if (!task.startDate) return null;
+      const start = new Date(task.startDate);
+      const end = task.status === 'done' && task.doneDate ? new Date(task.doneDate) : new Date();
+      const diff = Math.floor((end - start) / 86400000);
+      return diff >= 0 ? diff : null;
+    })();
+    const dayLabel = dayCount !== null
+      ? (task.status === 'done' ? `共 ${dayCount} 天` : `進行 ${dayCount} 天`)
+      : null;
+    const dayColor = task.status === 'done' ? 'var(--green)' : 'var(--cyan)';
 
-    // Wait a tick for the DOM to render, then scroll + highlight
-    setTimeout(() => {
-      const isMobile = window.innerWidth <= 768;
-      const el = isMobile
-        ? document.querySelector(`.task-card[data-id="${id}"]`)
-        : document.querySelector(`tr[data-id="${id}"]`);
-      if (!el) return;
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      el.classList.add('shared-highlight');
-      setTimeout(() => el.classList.remove('shared-highlight'), 3000);
-
-      // Remove ?task=ID from the address bar so a page refresh doesn't
-      // keep re-triggering the highlight, while keeping the link itself
-      // reusable for whoever it was shared with.
-      const cleanUrl = new URL(window.location.href);
-      cleanUrl.search = '';
-      window.history.replaceState({}, '', cleanUrl.toString());
-    }, 150);
+    document.body.innerHTML = `
+      <style>
+        .sv-wrap { min-height: 100vh; background: var(--snow); display: flex; flex-direction: column; align-items: center; padding: 0; }
+        .sv-header { background: var(--navy); width: 100%; padding: 0 1.5rem; height: 56px; display: flex; align-items: center; justify-content: space-between; }
+        .sv-logo { font-family: 'Space Grotesk',sans-serif; font-weight: 700; font-size: 1rem; color: white; display: flex; align-items: center; gap: 8px; }
+        .sv-logo span { color: var(--cyan); }
+        .sv-tag { font-size: 0.72rem; color: var(--muted); background: var(--navy2); padding: 3px 10px; border-radius: 20px; }
+        .sv-card { background: white; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); width: 100%; max-width: 540px; margin: 2rem 1rem; padding: 2rem; }
+        .sv-status-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+        .sv-title { font-family: 'Space Grotesk',sans-serif; font-size: 1.3rem; font-weight: 700; color: var(--navy); margin-bottom: 0.3rem; }
+        .sv-desc { font-size: 0.85rem; color: var(--muted); margin-bottom: 1.2rem; }
+        .sv-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 0.78rem; font-weight: 600; padding: 4px 12px; border-radius: 20px; }
+        .sv-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem 1.5rem; margin-bottom: 1.2rem; }
+        .sv-field label { font-size: 0.72rem; color: var(--muted); display: block; margin-bottom: 2px; }
+        .sv-field .val { font-size: 0.9rem; font-weight: 500; color: var(--navy); }
+        .sv-progress-wrap { margin-bottom: 1.2rem; }
+        .sv-progress-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .sv-progress-top span { font-size: 0.8rem; color: var(--muted); }
+        .sv-progress-top strong { font-size: 0.9rem; font-weight: 600; color: var(--navy); }
+        .sv-bar { background: #E2E8F0; border-radius: 999px; height: 8px; overflow: hidden; }
+        .sv-bar-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--cyan), var(--cyan2)); transition: width 0.4s; }
+        .sv-assignees { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 1.2rem; }
+        .sv-pill { display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 999px; font-size: 0.8rem; font-weight: 600; color: white; }
+        .sv-divider { border: none; border-top: 1px solid var(--border); margin: 1rem 0; }
+        .sv-note { font-size: 0.82rem; color: var(--muted); line-height: 1.6; white-space: pre-wrap; }
+        .sv-footer { text-align: center; font-size: 0.75rem; color: var(--muted); padding: 0 0 2rem; }
+        .sv-daybadge { font-size: 0.8rem; font-weight: 600; }
+        @media (max-width: 480px) { .sv-fields { grid-template-columns: 1fr; } .sv-card { margin: 1rem; padding: 1.4rem; } }
+      </style>
+      <div class="sv-wrap">
+        <div class="sv-header">
+          <div class="sv-logo">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+            <span>Progress</span> Track
+          </div>
+          <span class="sv-tag">工作進度</span>
+        </div>
+        <div class="sv-card">
+          <div class="sv-status-row">
+            <span class="sv-badge" style="background:${sm.bg};color:${sm.color}"><span style="width:7px;height:7px;border-radius:50%;background:${sm.color};display:inline-block"></span>${sm.label}</span>
+            ${dayLabel ? `<span class="sv-daybadge" style="color:${dayColor}">${dayLabel}</span>` : ''}
+          </div>
+          <div class="sv-title">${task.name || '（未命名）'}</div>
+          ${task.desc ? `<div class="sv-desc">${task.desc}</div>` : ''}
+          <div class="sv-fields">
+            ${task.project ? `<div class="sv-field"><label>工作內容</label><div class="val">${task.project}</div></div>` : ''}
+            ${task.client ? `<div class="sv-field"><label>客戶</label><div class="val">${task.client}</div></div>` : ''}
+            ${task.yearMonth ? `<div class="sv-field"><label>年月</label><div class="val">${task.yearMonth}</div></div>` : ''}
+            ${task.startDate ? `<div class="sv-field"><label>開始日期</label><div class="val">${formatDate(task.startDate)}</div></div>` : ''}
+            ${task.due ? `<div class="sv-field"><label>預定完成</label><div class="val" style="color:${task.status!=='done'&&task.due&&task.due<new Date().toISOString().slice(0,10)?'var(--red)':'inherit'}">${formatDate(task.due)}</div></div>` : ''}
+            ${task.doneDate ? `<div class="sv-field"><label>完成日期</label><div class="val" style="color:var(--green)">${formatDate(task.doneDate)}</div></div>` : ''}
+          </div>
+          <div class="sv-progress-wrap">
+            <div class="sv-progress-top"><span>完成進度</span><strong>${pct}%</strong></div>
+            <div class="sv-bar"><div class="sv-bar-fill" style="width:${pct}%;${task.status==='done'?'background:linear-gradient(90deg,var(--green),#059669)':''}"></div></div>
+          </div>
+          ${assignees.length ? `<div class="sv-assignees">${assignees.map(a=>`<span class="sv-pill" style="background:${getAssigneeColor(a)}">${a}</span>`).join('')}</div>` : ''}
+          ${task.note ? `<hr class="sv-divider"><div class="sv-note">${task.note}</div>` : ''}
+        </div>
+        <div class="sv-footer">— 圖威工作進度系統</div>
+      </div>`;
   }
 
   // ── INIT ──
-  if (localStorage.getItem(AUTH_KEY) === '1') {
-    currentRole = localStorage.getItem(ROLE_KEY) || 'internal';
+  if (isShareViewMode()) {
+    // 分享模式：載入資料後只渲染單一工作，不需密碼
+    document.getElementById('loginOverlay').classList.add('hidden');
+    loadTasks(false).then(() => {
+      const id = getShareViewId();
+      const task = tasks.find(x => x.id === id);
+      if (task) {
+        renderShareView(task);
+      } else {
+        document.body.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:Inter,sans-serif;color:#94A3B8;font-size:1rem;">找不到該筆工作，可能已被刪除。</div>`;
+      }
+    });
+  } else if (localStorage.getItem(AUTH_KEY) === '1') {
     document.getElementById('loginOverlay').classList.add('hidden');
     startApp();
   } else {
