@@ -2028,6 +2028,13 @@
         .sv-note { font-size: 0.82rem; color: var(--muted); line-height: 1.6; white-space: pre-wrap; }
         .sv-footer { text-align: center; font-size: 0.75rem; color: var(--muted); padding: 0 0 2rem; }
         .sv-daybadge { font-size: 0.8rem; font-weight: 600; }
+        .sv-actions { display: flex; gap: 10px; justify-content: center; padding: 0 1rem 1rem; flex-wrap: wrap; }
+        .sv-action-btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: 8px; font-size: 0.85rem; font-weight: 500; border: none; cursor: pointer; transition: opacity 0.15s; }
+        .sv-action-btn:active { opacity: 0.75; }
+        .sv-action-btn.share { background: #06B6D4; color: white; }
+        .sv-action-btn.drive { background: #F59E0B; color: white; }
+        .sv-action-btn.complete { background: #E2E8F0; color: var(--navy); }
+        .sv-action-btn.complete.active { background: var(--green); color: white; }
         @media (max-width: 480px) { .sv-fields { grid-template-columns: 1fr; } .sv-card { margin: 1rem; padding: 1.4rem; } }
       </style>
       <div class="sv-wrap">
@@ -2060,14 +2067,59 @@
           ${assignees.length ? `<div class="sv-assignees">${assignees.map(a=>`<span class="sv-pill" style="background:${getAssigneeColor(a)}">${a}</span>`).join('')}</div>` : ''}
           ${task.note ? `<hr class="sv-divider"><div class="sv-note">${task.note}</div>` : ''}
         </div>
-        <div style="text-align:center;padding:0 0 1rem;">
-          <a href="/twowei-work/" style="display:inline-flex;align-items:center;gap:6px;background:var(--navy);color:white;text-decoration:none;padding:9px 20px;border-radius:8px;font-size:0.85rem;font-weight:500;">
+        ${localStorage.getItem(AUTH_KEY) === '1' ? `
+        <div class="sv-actions">
+          <button class="sv-action-btn share" onclick="svShareTask()" title="分享到 LINE">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+            分享
+          </button>
+          <button class="sv-action-btn drive" onclick="window.open('${DRIVE_URL}','_blank')" title="雲端硬碟">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            雲端硬碟
+          </button>
+          <button class="sv-action-btn complete${task.status === 'done' ? ' active' : ''}" id="svCompleteBtn" onclick="svToggleComplete()" title="${task.status === 'done' ? '取消完成' : '標記為已完成'}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            ${task.status === 'done' ? '已完成' : '標記完成'}
+          </button>
+        </div>` : ''}
+        <div style="text-align:center;padding:0.5rem 0 1rem;">
+          <a href="https://twowei-work.wei9106.workers.dev/" style="display:inline-flex;align-items:center;gap:6px;background:var(--navy);color:white;text-decoration:none;padding:9px 20px;border-radius:8px;font-size:0.85rem;font-weight:500;">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
             回工作進度系統
           </a>
         </div>
         <div class="sv-footer">— 圖威工作進度系統</div>
       </div>`;
+  }
+
+  // ── 分享卡片頁專用函數 ──
+  let svTask = null; // 儲存當前分享卡片的工作資料
+
+  async function svShareTask() {
+    if (!svTask) return;
+    await shareTask(svTask.id);
+  }
+
+  async function svToggleComplete() {
+    if (!svTask) return;
+    const snap = await DOC_REF.get();
+    const allTasks = snap.exists ? (snap.data().tasks || []) : [];
+    const idx = allTasks.findIndex(x => x.id === svTask.id);
+    if (idx === -1) return;
+    const isDone = allTasks[idx].status === 'done';
+    allTasks[idx].status = isDone ? 'inprog' : 'done';
+    if (!isDone) allTasks[idx].doneDate = new Date().toISOString().slice(0,10);
+    else delete allTasks[idx].doneDate;
+    allTasks[idx].progress = isDone ? (allTasks[idx].progress || 0) : 100;
+    await DOC_REF.set({ tasks: allTasks });
+    svTask = allTasks[idx];
+    // 更新按鈕狀態
+    const btn = document.getElementById('svCompleteBtn');
+    if (btn) {
+      btn.className = 'sv-action-btn complete' + (svTask.status === 'done' ? ' active' : '');
+      btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>${svTask.status === 'done' ? '已完成' : '標記完成'}`;
+    }
+    showToast(svTask.status === 'done' ? '✓ 已標記為完成' : '已取消完成狀態');
   }
 
   // ── INIT ──
@@ -2081,6 +2133,7 @@
         const allTasks = snap.exists ? (snap.data().tasks || []) : [];
         const task = allTasks.find(x => x.id === id);
         if (task) {
+          svTask = task;
           renderShareView(task);
         } else {
           document.body.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:Inter,sans-serif;color:#94A3B8;font-size:1rem;">找不到該筆工作，可能已被刪除。</div>`;
