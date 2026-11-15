@@ -2074,17 +2074,23 @@
 
   // ── INIT ──
   if (isShareViewMode()) {
-    // 分享模式：載入資料後只渲染單一工作，不需密碼
+    // 分享模式：直接從 Firestore 讀取，不走 renderTable()，不需密碼
     document.getElementById('loginOverlay').classList.add('hidden');
-    loadTasks(false).then(() => {
-      const id = getShareViewId();
-      const task = tasks.find(x => x.id === id);
-      if (task) {
-        renderShareView(task);
-      } else {
-        document.body.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:Inter,sans-serif;color:#94A3B8;font-size:1rem;">找不到該筆工作，可能已被刪除。</div>`;
+    (async () => {
+      try {
+        const snap = await DOC_REF.get();
+        const id = getShareViewId();
+        const allTasks = snap.exists ? (snap.data().tasks || []) : [];
+        const task = allTasks.find(x => x.id === id);
+        if (task) {
+          renderShareView(task);
+        } else {
+          document.body.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:Inter,sans-serif;color:#94A3B8;font-size:1rem;">找不到該筆工作，可能已被刪除。</div>`;
+        }
+      } catch (err) {
+        document.body.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:Inter,sans-serif;color:#94A3B8;font-size:1rem;">載入失敗，請稍後再試。</div>`;
       }
-    });
+    })();
   } else if (localStorage.getItem(AUTH_KEY) === '1') {
     document.getElementById('loginOverlay').classList.add('hidden');
     startApp();
