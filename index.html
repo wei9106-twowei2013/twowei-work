@@ -1825,8 +1825,9 @@
   // ── 分享工作（手動，給使用者自己貼到 LINE） ──
   // Builds a direct link back into this app, pre-filled with ?task=ID so
   // the recipient (after logging in) is auto-scrolled to this exact task.
-  function buildTaskLink(id) {
-    return `https://twowei-work.wei9106.workers.dev/?view=task&id=${id}`;
+  function buildTaskLink(id, bustCache) {
+    const base = `https://twowei-work.wei9106.workers.dev/?view=task&id=${id}`;
+    return bustCache ? `${base}&t=${Date.now()}` : base;
   }
 
   function buildShareText(t) {
@@ -1852,7 +1853,7 @@
   async function shareTask(id) {
     const t = tasks.find(x=>x.id===id);
     if (!t) return;
-    const url = buildTaskLink(t.id);
+    const url = buildTaskLink(t.id, true);
     const sm = statusMap[t.status] || statusMap.pending;
     const pct = Math.min(100, Math.max(0, t.progress || 0));
     // LINE 顯示時，title 通常被忽略，text 才是訊息本體
