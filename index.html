@@ -781,16 +781,6 @@
 
   <!-- STATS -->
   <div class="stats-row">
-    <div class="stat-card" id="statCardAll" onclick="filterByCard('all')">
-      <div class="stat-label">全部工作</div>
-      <div class="stat-value cyan" id="statTotal">0</div>
-      <div class="stat-sub">本期進行中</div>
-    </div>
-    <div class="stat-card" id="statCardDone" onclick="filterByCard('done')">
-      <div class="stat-label">已完成</div>
-      <div class="stat-value green" id="statDone">0</div>
-      <div class="stat-sub">工作完成</div>
-    </div>
     <div class="stat-card" id="statCardInprog" onclick="filterByCard('inprog')">
       <div class="stat-label">進行中</div>
       <div class="stat-value cyan" id="statInprog">0</div>
@@ -805,6 +795,16 @@
       <div class="stat-label">停等中</div>
       <div class="stat-value red" id="statBlocked">0</div>
       <div class="stat-sub">需要協助</div>
+    </div>
+    <div class="stat-card" id="statCardDone" onclick="filterByCard('done')">
+      <div class="stat-label">已完成</div>
+      <div class="stat-value green" id="statDone">0</div>
+      <div class="stat-sub">工作完成</div>
+    </div>
+    <div class="stat-card" id="statCardAll" onclick="filterByCard('all')">
+      <div class="stat-label">全部工作</div>
+      <div class="stat-value cyan" id="statTotal">0</div>
+      <div class="stat-sub">本期進行中</div>
     </div>
   </div>
 
